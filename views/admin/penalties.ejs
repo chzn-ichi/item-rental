@@ -1,0 +1,61 @@
+<%- include('../partials/admin-top', { title: 'Penalties', activePage: 'penalties' }) %>
+
+<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <% [['all','All'],['unpaid','Unpaid'],['paid','Paid'],['waived','Waived']].forEach(([key, label]) => { %>
+        <a href="/admin/penalties<%= key === 'all' ? '' : '?status=' + key %>"
+           class="btn <%= status === key ? 'btn-primary' : '' %>" style="padding: 6px 16px;"><%= label %></a>
+    <% }) %>
+</div>
+
+<div style="margin-bottom: 20px; padding: 14px 18px; background: #FEE2E2; color: #991B1B; border-radius: 8px;">
+    Total unpaid: <strong><%= helpers.formatMoney(unpaid.total) %></strong> across <%= unpaid.count %> penalt<%= unpaid.count === 1 ? 'y' : 'ies' %>.
+</div>
+
+<div class="table-container">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB;">Penalties (<%= rentals.length %>)</h3>
+    <% if (rentals.length > 0) { %>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr><th>Student</th><th>Email</th><th>Item</th><th>Reason</th><th>Amount</th><th>Returned</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    <% rentals.forEach(r => { %>
+                        <% const p = r.penalty; const open = !p.paid && !p.waived; %>
+                        <tr>
+                            <td><%= r.user ? r.user.name : '—' %></td>
+                            <td><%= r.user ? r.user.email : '—' %></td>
+                            <td><%= r.itemName %> <small>(<%= r.itemCode %>)</small></td>
+                            <td><%= p.reason %></td>
+                            <td><strong><%= helpers.formatMoney(p.amount) %></strong></td>
+                            <td><%= helpers.formatDate(r.returnDate) %></td>
+                            <td><%- helpers.penaltyBadge(p) %></td>
+                            <td>
+                                <% if (open) { %>
+                                    <div style="display: flex; gap: 6px;">
+                                        <form method="POST" action="/admin/penalties/<%= r._id %>/paid" onsubmit="return confirm('Mark this penalty as paid?')">
+                                            <input type="hidden" name="back_status" value="<%= status %>">
+                                            <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px;">Mark as Paid</button>
+                                        </form>
+                                        <form method="POST" action="/admin/penalties/<%= r._id %>/waive" onsubmit="return confirm('Waive this penalty? The student will no longer owe it.')">
+                                            <input type="hidden" name="back_status" value="<%= status %>">
+                                            <button type="submit" class="btn" style="padding: 4px 12px; font-size: 12px; background: #6B7280; color: white;">Waive</button>
+                                        </form>
+                                    </div>
+                                <% } else { %>
+                                    <small style="color: #6B7280;">
+                                        <%= p.waived ? 'Waived' : 'Paid' %> on <%= helpers.formatDate(p.paidAt) %><% if (p.paidBy) { %> by <%= p.paidBy.name %><% } %>
+                                    </small>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    <% } else { %>
+        <p style="padding: 40px; text-align: center; color: #6B7280;">No penalties found.</p>
+    <% } %>
+</div>
+
+<%- include('../partials/admin-bottom') %>

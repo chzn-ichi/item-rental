@@ -1,0 +1,72 @@
+<%- include('../partials/admin-top', { title: 'Admin Dashboard', activePage: 'dashboard' }) %>
+
+<div class="stats-grid">
+    <div class="stat-card blue"><div class="stat-label">Total Items</div><div class="stat-value"><%= totalItems %></div></div>
+    <div class="stat-card green"><div class="stat-label">Available</div><div class="stat-value"><%= available %></div></div>
+    <div class="stat-card yellow"><div class="stat-label">Rented</div><div class="stat-value"><%= rented %></div></div>
+    <div class="stat-card yellow"><div class="stat-label">Under Maintenance</div><div class="stat-value"><%= maintenance %></div></div>
+    <div class="stat-card red"><div class="stat-label">Damaged</div><div class="stat-value"><%= damaged %></div></div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card blue">
+        <div class="stat-label">Pending Approvals</div>
+        <div class="stat-value"><%= pendingApprovals %></div>
+        <div><a href="/admin/rentals" style="font-size: 12px;">View Details</a></div>
+    </div>
+    <div class="stat-card yellow">
+        <div class="stat-label">Pending Returns</div>
+        <div class="stat-value"><%= pendingReturns %></div>
+        <div><a href="/admin/returns" style="font-size: 12px;">Process Now</a></div>
+    </div>
+    <div class="stat-card green"><div class="stat-label">Active Rentals</div><div class="stat-value"><%= activeRentals %></div></div>
+    <div class="stat-card red"><div class="stat-label">Overdue Rentals</div><div class="stat-value"><%= overdueRentals %></div></div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card red">
+        <div class="stat-label">Unpaid Penalties</div>
+        <div class="stat-value"><%= helpers.formatMoney(unpaid.total) %></div>
+        <div><a href="/admin/penalties?status=unpaid" style="font-size: 12px;">View Details</a></div>
+    </div>
+    <div class="stat-card blue"><div class="stat-label">Total Students</div><div class="stat-value"><%= totalStudents %></div></div>
+</div>
+
+<div class="table-container" style="margin-bottom: 30px;">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB;">Items by Category</h3>
+    <div style="padding: 16px; display: flex; flex-wrap: wrap; gap: 15px;">
+        <% categoryCounts.forEach(c => { %>
+            <div style="background: #F3F4F6; padding: 10px 20px; border-radius: 8px;">
+                <strong><%= c._id %></strong>: <%= c.count %> items
+            </div>
+        <% }) %>
+        <% if (categoryCounts.length === 0) { %><span style="color: #6B7280;">No items yet.</span><% } %>
+    </div>
+</div>
+
+<div class="table-container">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB;">Recent Rental Activity</h3>
+    <% if (recentRentals.length > 0) { %>
+        <table style="width: 100%;">
+            <thead>
+                <tr><th>Student</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Borrow Date</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                <% recentRentals.forEach(r => { %>
+                    <tr>
+                        <td><%= r.user ? r.user.name : '—' %></td>
+                        <td><%= r.itemCode %></td>
+                        <td><%= r.itemName %></td>
+                        <td><%- helpers.categoryBadge(r.category) %></td>
+                        <td><%= helpers.formatDate(r.borrowDate) %></td>
+                        <td><%- helpers.rentalStatusBadge(r.status) %></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    <% } else { %>
+        <p style="padding: 40px; text-align: center; color: #6B7280;">No rental activity yet.</p>
+    <% } %>
+</div>
+
+<%- include('../partials/admin-bottom') %>

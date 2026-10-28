@@ -1,0 +1,79 @@
+<%- include('../partials/admin-top', { title: 'Manage Rentals', activePage: 'rentals' }) %>
+
+<!-- Pending Approvals -->
+<div class="table-container" style="margin-bottom: 30px;">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB; background: #FEF3C7;">
+        Pending Approvals (<%= pending.length %>)
+    </h3>
+    <% if (pending.length > 0) { %>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr><th>Student</th><th>Email</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Request Date</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    <% pending.forEach(r => { %>
+                        <tr>
+                            <td><%= r.user ? r.user.name : '—' %></td>
+                            <td><%= r.user ? r.user.email : '—' %></td>
+                            <td><strong><%= r.itemCode %></strong></td>
+                            <td><%= r.itemName %></td>
+                            <td><%- helpers.categoryBadge(r.category) %></td>
+                            <td><%= helpers.formatDate(r.borrowDate) %></td>
+                            <td>
+                                <div style="display: flex; gap: 6px;">
+                                    <form method="POST" action="/admin/rentals/<%= r._id %>/approve">
+                                        <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px;">Approve</button>
+                                    </form>
+                                    <form method="POST" action="/admin/rentals/<%= r._id %>/reject" onsubmit="return confirm('Reject this request?')">
+                                        <button type="submit" class="btn" style="padding: 4px 12px; font-size: 12px; background: #DC2626; color: white;">Reject</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    <% } else { %>
+        <p style="padding: 40px; text-align: center; color: #6B7280;">No pending approvals.</p>
+    <% } %>
+</div>
+
+<!-- Active Rentals -->
+<div class="table-container">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB; background: #DBEAFE;">
+        Active Rentals (<%= active.length %>)
+    </h3>
+    <% if (active.length > 0) { %>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr><th>Student</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Borrow Date</th><th>Due Date</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <% active.forEach(r => { %>
+                        <tr>
+                            <td><%= r.user ? r.user.name : '—' %></td>
+                            <td><%= r.itemCode %></td>
+                            <td><%= r.itemName %></td>
+                            <td><%- helpers.categoryBadge(r.category) %></td>
+                            <td><%= helpers.formatDate(r.borrowDate) %></td>
+                            <td>
+                                <%= helpers.formatDate(r.dueDate) %>
+                                <% if (r.dueDate < now) { %>
+                                    <span style="color: #EF4444; font-weight: bold;">(Overdue)</span>
+                                <% } %>
+                            </td>
+                            <td><%- helpers.rentalStatusBadge(r.status) %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    <% } else { %>
+        <p style="padding: 40px; text-align: center; color: #6B7280;">No active rentals.</p>
+    <% } %>
+</div>
+
+<%- include('../partials/admin-bottom') %>

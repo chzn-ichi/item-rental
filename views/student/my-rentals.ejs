@@ -1,0 +1,56 @@
+<%- include('../partials/student-top', { title: title, activePage: 'myrentals' }) %>
+
+<h1 class="page-title"><%= title %></h1>
+
+<div class="category-filter">
+    <a href="/my-rentals" class="filter-btn <%= tab === 'all' ? 'active' : '' %>">All</a>
+    <a href="/my-rentals?tab=pending" class="filter-btn <%= tab === 'pending' ? 'active' : '' %>">Pending</a>
+    <a href="/my-rentals?tab=active" class="filter-btn <%= tab === 'active' ? 'active' : '' %>">Active</a>
+    <a href="/my-rentals?tab=returning" class="filter-btn <%= tab === 'returning' ? 'active' : '' %>">Pending Return</a>
+</div>
+
+<% if (success) { %><div class="alert alert-success">✓ <%= success %></div><% } %>
+<% if (error) { %><div class="alert alert-error">✗ <%= error %></div><% } %>
+
+<div class="table-container">
+    <% if (rentals.length > 0) { %>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Item Code</th><th>Item Name</th><th>Category</th>
+                    <th>Borrow Date</th><th>Due Date</th><th>Status</th><th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% rentals.forEach(r => { %>
+                    <tr>
+                        <td><%= r.itemCode %></td>
+                        <td><%= r.itemName %></td>
+                        <td><%- helpers.categoryBadge(r.category) %></td>
+                        <td><%= helpers.formatDate(r.borrowDate) %></td>
+                        <td><%= helpers.formatDate(r.dueDate) %></td>
+                        <td><%- helpers.rentalStatusBadge(r.status) %></td>
+                        <td>
+                            <% if (r.status === 'approved') { %>
+                                <form method="POST" action="/my-rentals/return">
+                                    <input type="hidden" name="return_rental_id" value="<%= r._id %>">
+                                    <button type="submit" class="btn-warning">Request Return</button>
+                                </form>
+                            <% } else if (r.status === 'pending_return') { %>
+                                <small>Waiting for admin</small>
+                            <% } else if (r.status === 'pending') { %>
+                                <small>Waiting for approval</small>
+                            <% } else { %>
+                                —
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    <% } else { %>
+        <div class="empty-state">No <%= title.toLowerCase() %> found.</div>
+    <% } %>
+</div>
+
+<%- include('../partials/student-bottom') %>

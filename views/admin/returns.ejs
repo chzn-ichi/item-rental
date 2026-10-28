@@ -1,0 +1,100 @@
+<%- include('../partials/admin-top', { title: 'Process Returns', activePage: 'returns' }) %>
+
+<!-- Pending Returns -->
+<div class="table-container" style="margin-bottom: 30px;">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB; background: #FEF3C7; color: #92400E;">
+        Pending Returns - Waiting for Verification
+        <span style="float: right; font-size: 14px;">Count: <%= pending.length %></span>
+    </h3>
+    <% if (pending.length > 0) { %>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr><th>Student</th><th>Email</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Borrow Date</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    <% pending.forEach(r => { %>
+                        <tr>
+                            <td><strong><%= r.user ? r.user.name : '—' %></strong></td>
+                            <td><%= r.user ? r.user.email : '—' %></td>
+                            <td><%= r.itemCode %></td>
+                            <td><%= r.itemName %></td>
+                            <td><%- helpers.categoryBadge(r.category) %></td>
+                            <td><%= helpers.formatDate(r.borrowDate) %></td>
+                            <td>
+                                <form method="POST" action="/admin/returns/process" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <input type="hidden" name="rental_id" value="<%= r._id %>">
+                                    <select name="condition" required
+                                            onchange="this.form.penalty_amount.disabled = this.value !== 'damaged'"
+                                            style="padding: 6px 10px; border-radius: 6px; border: 1px solid #D1D5DB;">
+                                        <option value="">Select Condition</option>
+                                        <option value="good">Good</option>
+                                        <option value="dirty">Dirty</option>
+                                        <option value="damaged">Damaged</option>
+                                    </select>
+                                    <input type="number" name="penalty_amount" placeholder="Penalty (₱)" step="0.01" min="0" disabled
+                                           style="width: 110px; padding: 6px 10px; border-radius: 6px; border: 1px solid #D1D5DB;">
+                                    <button type="submit" class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;">Process</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    <% } else { %>
+        <p style="padding: 40px; text-align: center; color: #6B7280;">No pending returns. All good!</p>
+    <% } %>
+</div>
+
+<!-- Recently Processed -->
+<div class="table-container">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB; background: #D1FAE5; color: #065F46;">
+        Recently Processed Returns
+    </h3>
+    <% if (recent.length > 0) { %>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr><th>Student</th><th>Item Code</th><th>Item Name</th><th>Borrow Date</th><th>Return Date</th><th>Condition</th><th>Penalty</th></tr>
+                </thead>
+                <tbody>
+                    <% recent.forEach(r => { %>
+                        <tr>
+                            <td><%= r.user ? r.user.name : '—' %></td>
+                            <td><%= r.itemCode %></td>
+                            <td><%= r.itemName %></td>
+                            <td><%= helpers.formatDate(r.borrowDate) %></td>
+                            <td><%= helpers.formatDate(r.returnDate) %></td>
+                            <td><%= r.returnCondition ? r.returnCondition.charAt(0).toUpperCase() + r.returnCondition.slice(1) : '—' %></td>
+                            <td>
+                                <% if (r.penalty && r.penalty.amount > 0) { %>
+                                    <span style="color: #DC2626; font-weight: bold;"><%= helpers.formatMoney(r.penalty.amount) %></span>
+                                    <%- helpers.penaltyBadge(r.penalty) %>
+                                <% } else { %>
+                                    <span style="color: #10B981;">No penalty</span>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    <% } else { %>
+        <p style="padding: 40px; text-align: center; color: #6B7280;">No processed returns yet.</p>
+    <% } %>
+</div>
+
+<div style="margin-top: 30px; padding: 20px; background: #DBEAFE; border-radius: 12px; border-left: 4px solid #1E3A5F;">
+    <h4 style="color: #1E3A5F; margin-bottom: 12px;">How to Process Returns</h4>
+    <ul style="margin-left: 20px; color: #334155; line-height: 1.6;">
+        <li><strong>Good:</strong> Item is clean and undamaged. It goes back to inventory right away.</li>
+        <li><strong>Dirty:</strong> Item needs upkeep. It is set to Under Maintenance, and you mark it Available in Manage Items when it's ready.</li>
+        <li><strong>Damaged:</strong> Item is broken. It is marked Damaged, and you may enter an optional penalty.</li>
+    </ul>
+    <p style="margin-top: 12px; color: #1E40AF; font-size: 13px;">
+        Penalty amounts are set by the dormitory officer based on damage severity.
+    </p>
+</div>
+
+<%- include('../partials/admin-bottom') %>

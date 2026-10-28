@@ -1,0 +1,37 @@
+<%- include('../partials/student-top', { title: 'Penalties', activePage: 'penalties' }) %>
+
+<h1 class="page-title">My Penalties</h1>
+
+<% if (penalty.count > 0) { %>
+    <div class="alert alert-error">
+        Total unpaid: <strong><%= helpers.formatMoney(penalty.total) %></strong>.
+        Pay the dorm officer in person, and they will mark it as paid. Borrowing is paused until then.
+    </div>
+<% } else { %>
+    <div class="alert alert-success">✓ You have no unpaid penalties.</div>
+<% } %>
+
+<div class="table-container">
+    <% if (rentals.length > 0) { %>
+        <table class="data-table">
+            <thead>
+                <tr><th>Item</th><th>Reason</th><th>Amount</th><th>Date Returned</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                <% rentals.forEach(r => { %>
+                    <tr>
+                        <td><%= r.itemName %> <small>(<%= r.itemCode %>)</small></td>
+                        <td><%= r.penalty.reason %></td>
+                        <td><%= helpers.formatMoney(r.penalty.amount) %></td>
+                        <td><%= helpers.formatDate(r.returnDate) %></td>
+                        <td><%- helpers.penaltyBadge(r.penalty) %></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    <% } else { %>
+        <div class="empty-state">No penalties on record.</div>
+    <% } %>
+</div>
+
+<%- include('../partials/student-bottom') %>

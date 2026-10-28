@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Dorm Item Rental</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/student.css">
+</head>
+<body class="student-dashboard-body">
+    <div class="dashboard-wrapper">
+        <div class="header-container">
+            <div class="dashboard-header">
+                <div class="logo-area">
+                    <h1>Dorm Item Rental</h1>
+                    <p>Borrow what you need, return when you're done</p>
+                </div>
+                <div class="user-area">
+                    <div class="user-greeting">
+                        <div class="user-name">Hello, <%= currentUser.name %>!</div>
+                        <div class="user-role">Student</div>
+                    </div>
+                    <a href="/logout" class="logout-btn">Logout</a>
+                </div>
+            </div>
+
+            <div class="tab-bar">
+                <a href="/dashboard" class="tab-link <%= activePage === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+                <a href="/borrow" class="tab-link <%= activePage === 'borrow' ? 'active' : '' %>">Borrow Item</a>
+                <a href="/my-rentals" class="tab-link <%= activePage === 'myrentals' ? 'active' : '' %>">My Rentals</a>
+                <a href="/overdue" class="tab-link <%= activePage === 'overdue' ? 'active' : '' %>">Overdue Rentals</a>
+                <a href="/penalties" class="tab-link <%= activePage === 'penalties' ? 'active' : '' %>">Penalties</a>
+            </div>
+        </div>

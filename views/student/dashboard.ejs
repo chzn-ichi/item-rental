@@ -1,0 +1,72 @@
+<%- include('../partials/student-top', { title: 'Dashboard', activePage: 'dashboard' }) %>
+
+<% if (penalty.count > 0) { %>
+    <div class="alert alert-error">
+        You have an unpaid penalty of <strong><%= helpers.formatMoney(penalty.total) %></strong>.
+        You can't borrow new items until it's settled with the dorm officer.
+        <a href="/penalties">View details</a>
+    </div>
+<% } %>
+
+<div class="stats-grid-4">
+    <a href="/borrow" class="stat-card card-borrow">
+        <div class="stat-value"><%= availableItems %></div>
+        <div class="stat-label">Borrow Item</div>
+        <div class="stat-sub">Click to borrow →</div>
+    </a>
+    <a href="/my-rentals?tab=active" class="stat-card card-active">
+        <div class="stat-value"><%= activeRentals %></div>
+        <div class="stat-label">Active Rentals</div>
+        <div class="stat-sub">Click to view →</div>
+    </a>
+    <a href="/my-rentals?tab=pending" class="stat-card card-pending">
+        <div class="stat-value"><%= pendingRequests %></div>
+        <div class="stat-label">Pending Requests</div>
+        <div class="stat-sub">Click to track →</div>
+    </a>
+    <a href="/overdue" class="stat-card card-overdue">
+        <div class="stat-value"><%= overdueRentals %></div>
+        <div class="stat-label">Overdue Rentals</div>
+        <div class="stat-sub">Click to view →</div>
+    </a>
+</div>
+
+<div class="section-card">
+    <div class="section-header">
+        <h2>Recent Rentals</h2>
+        <a href="/my-rentals">View All →</a>
+    </div>
+    <div class="section-content">
+        <% if (recentRentals.length > 0) { %>
+            <table class="mini-table">
+                <thead>
+                    <tr><th>Item</th><th>Category</th><th>Borrow Date</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <% recentRentals.forEach(r => { %>
+                        <tr class="clickable-row" data-href="/my-rentals">
+                            <td><%= r.itemName %> <small>(<%= r.itemCode %>)</small></td>
+                            <td><%- helpers.categoryBadge(r.category) %></td>
+                            <td><%= helpers.formatDate(r.borrowDate) %></td>
+                            <td><%- helpers.rentalStatusBadge(r.status) %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        <% } else { %>
+            <div class="empty-state">No rentals yet. Start borrowing!</div>
+        <% } %>
+    </div>
+</div>
+
+<div class="dashboard-footer">
+    <p>Dormitory Item Rental System | Borrow responsibly, return on time</p>
+</div>
+
+<script>
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', () => { window.location.href = row.dataset.href; });
+    });
+</script>
+
+<%- include('../partials/student-bottom') %>

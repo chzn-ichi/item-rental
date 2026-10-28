@@ -1,0 +1,44 @@
+<%- include('../partials/admin-top', { title: 'Rental History', activePage: 'history' }) %>
+
+<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <% [['all','All'],['pending','Pending'],['approved','Approved'],['pending_return','Pending Return'],['returned','Returned']].forEach(([key, label]) => { %>
+        <a href="/admin/history<%= key === 'all' ? '' : '?status=' + key %>"
+           class="btn <%= status === key ? 'btn-primary' : '' %>" style="padding: 6px 16px;"><%= label %></a>
+    <% }) %>
+</div>
+
+<div class="table-container">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB;">All Rentals (<%= rentals.length %>)</h3>
+    <% if (rentals.length > 0) { %>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Student</th><th>Email</th><th>Item Code</th><th>Item Name</th><th>Category</th>
+                        <th>Borrow Date</th><th>Due Date</th><th>Return Date</th><th>Condition</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% rentals.forEach(r => { %>
+                        <tr>
+                            <td><%= r.user ? r.user.name : '—' %></td>
+                            <td><%= r.user ? r.user.email : '—' %></td>
+                            <td><%= r.itemCode %></td>
+                            <td><%= r.itemName %></td>
+                            <td><%- helpers.categoryBadge(r.category) %></td>
+                            <td><%= helpers.formatDate(r.borrowDate) %></td>
+                            <td><%= helpers.formatDate(r.dueDate) %></td>
+                            <td><%= helpers.formatDate(r.returnDate) %></td>
+                            <td><%= r.returnCondition ? r.returnCondition.charAt(0).toUpperCase() + r.returnCondition.slice(1) : '—' %></td>
+                            <td><%- helpers.rentalStatusBadge(r.status) %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    <% } else { %>
+        <p style="padding: 40px; text-align: center; color: #6B7280;">No rentals found.</p>
+    <% } %>
+</div>
+
+<%- include('../partials/admin-bottom') %>

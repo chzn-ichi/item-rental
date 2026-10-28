@@ -1,0 +1,64 @@
+<%- include('../partials/student-top', { title: 'Borrow Item', activePage: 'borrow' }) %>
+
+<% if (success) { %><div class="alert alert-success">✓ <%= success %></div><% } %>
+<% if (error) { %><div class="alert alert-error">✗ <%= error %></div><% } %>
+
+<% const blocked = penalty.count > 0; %>
+<% const atLimit = inProgress >= maxRentals; %>
+
+<% if (blocked) { %>
+    <div class="alert alert-error">
+        You have an unpaid penalty of <%= helpers.formatMoney(penalty.total) %>.
+        Please settle it with the dorm officer to borrow again.
+    </div>
+<% } else if (atLimit) { %>
+    <div class="alert alert-warning">
+        ⚠ You already have <%= inProgress %> rental(s) in progress. Maximum is <%= maxRentals %>.
+    </div>
+<% } %>
+
+<div class="category-filter">
+    <a href="?category=all" class="filter-btn <%= category === 'all' ? 'active' : '' %>">All Categories</a>
+    <% categories.forEach(cat => { %>
+        <a href="?category=<%= encodeURIComponent(cat) %>" class="filter-btn <%= category === cat ? 'active' : '' %>"><%= cat %></a>
+    <% }) %>
+</div>
+
+<div class="table-container">
+    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB;">
+        Available Items (<%= items.length %>)
+    </h3>
+    <% if (items.length > 0) { %>
+        <table class="data-table">
+            <thead>
+                <tr><th>Item Code</th><th>Item Name</th><th>Category</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                <% items.forEach(item => { %>
+                    <tr>
+                        <td><strong><%= item.itemCode %></strong></td>
+                        <td><%= item.itemName %></td>
+                        <td><%- helpers.categoryBadge(item.category) %></td>
+                        <td><%- helpers.itemStatusBadge(item.status) %></td>
+                        <td>
+                            <% if (blocked) { %>
+                                <button class="btn-disabled" disabled>Unpaid Penalty</button>
+                            <% } else if (atLimit) { %>
+                                <button class="btn-disabled" disabled>Max Rentals</button>
+                            <% } else { %>
+                                <form method="POST" action="/borrow?category=<%= encodeURIComponent(category) %>">
+                                    <input type="hidden" name="item_id" value="<%= item._id %>">
+                                    <button type="submit" class="btn-primary">Borrow</button>
+                                </form>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    <% } else { %>
+        <div class="empty-state">No available items in this category.</div>
+    <% } %>
+</div>
+
+<%- include('../partials/student-bottom') %>

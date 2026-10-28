@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Admin</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">R</div>
+            <h3>Admin Panel</h3>
+        </div>
+        <% const nav = [
+            ['dashboard', '/admin/dashboard', 'Dashboard'],
+            ['items', '/admin/items', 'Manage Items'],
+            ['rentals', '/admin/rentals', 'Manage Rentals'],
+            ['returns', '/admin/returns', 'Process Returns'],
+            ['penalties', '/admin/penalties', 'Penalties'],
+            ['history', '/admin/history', 'Rental History'],
+        ]; %>
+        <ul class="nav-menu">
+            <% nav.forEach(([key, href, label]) => { %>
+                <li class="nav-item"><a href="<%= href %>" class="nav-link <%= activePage === key ? 'active' : '' %>"><%= label %></a></li>
+            <% }) %>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="top-bar">
+            <h1 class="page-title"><%= title %></h1>
+            <div class="user-info">
+                <span class="user-name">Admin: <%= currentUser.name %></span>
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <% if (flash.success) { %>
+            <div class="alert alert-success" style="background: #D1FAE5; color: #065F46; padding: 12px; border-radius: 8px; margin-bottom: 20px;">✓ <%= flash.success %></div>
+        <% } %>
+        <% if (flash.error) { %>
+            <div class="alert alert-error" style="background: #FEE2E2; color: #DC2626; padding: 12px; border-radius: 8px; margin-bottom: 20px;">✗ <%= flash.error %></div>
+        <% } %>
