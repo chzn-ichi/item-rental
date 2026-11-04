@@ -1,0 +1,68 @@
+<%
+  const isAdminUser = currentUser && currentUser.role === 'admin';
+  const home = isAdminUser ? '/admin/dashboard' : '/dashboard';
+  const links = isAdminUser
+    ? [
+        ['dashboard', '/admin/dashboard', 'Dashboard', 'ti-layout-dashboard'],
+        ['items', '/admin/items', 'Items', 'ti-box'],
+        ['rentals', '/admin/rentals', 'Rentals', 'ti-clipboard-list'],
+        ['returns', '/admin/returns', 'Returns', 'ti-arrow-back-up'],
+        ['penalties', '/admin/penalties', 'Penalties', 'ti-coin'],
+        ['history', '/admin/history', 'History', 'ti-history'],
+      ]
+    : [
+        ['dashboard', '/dashboard', 'Dashboard', 'ti-layout-dashboard'],
+        ['borrow', '/borrow', 'Borrow', 'ti-package'],
+        ['myrentals', '/my-rentals', 'My rentals', 'ti-list-details'],
+        ['overdue', '/overdue', 'Overdue', 'ti-alert-triangle'],
+        ['penalties', '/penalties', 'Penalties', 'ti-coin'],
+      ];
+  const flashMsg = locals.flash || {};
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - UniRent</title>
+    <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" href="<%= home %>" aria-label="UniRent home">
+            <img src="/img/logo-mark.svg" alt="">
+            <span class="brand-text">ni<span>Rent</span></span>
+        </a>
+
+        <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="topbar-menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+
+        <div class="topbar-menu" id="topbar-menu">
+            <nav class="nav-links">
+                <% links.forEach(([key, href, label, icon]) => { %>
+                    <a href="<%= href %>" class="<%= activePage === key ? 'active' : '' %>"><i class="ti <%= icon %>" aria-hidden="true"></i><%= label %></a>
+                <% }) %>
+            </nav>
+            <div class="user-area">
+                <div class="user-meta">
+                    <span class="user-name"><%= currentUser.name %></span>
+                    <span class="user-role"><%= isAdminUser ? 'Administrator' : 'Student' %></span>
+                </div>
+                <a href="/logout" class="btn btn-sm">Logout</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="page">
+    <% if (locals.showTitle) { %>
+        <h1 class="page-title"><%= title %></h1>
+    <% } %>
+    <%- include('messages', { success: flashMsg.success, error: flashMsg.error }) %>

@@ -1,60 +1,75 @@
 <%- include('../partials/admin-top', { title: 'Penalties', activePage: 'penalties' }) %>
 
-<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Penalties</h1>
+        <p class="page-sub">Students pay in person. Mark the penalty as paid once they do.</p>
+    </div>
+</div>
+
+<div class="summary-card <%= unpaid.count > 0 ? 'owing' : '' %>">
+    <div>
+        <div class="summary-label">Total unpaid</div>
+        <div class="summary-value"><%= helpers.formatMoney(unpaid.total) %></div>
+    </div>
+    <% if (unpaid.count > 0) { %>
+        <p class="summary-note">Across <%= unpaid.count %> penalt<%= unpaid.count === 1 ? 'y' : 'ies' %>.</p>
+    <% } else { %>
+        <span class="pill-calm">All settled</span>
+    <% } %>
+</div>
+
+<div class="category-filter">
     <% [['all','All'],['unpaid','Unpaid'],['paid','Paid'],['waived','Waived']].forEach(([key, label]) => { %>
         <a href="/admin/penalties<%= key === 'all' ? '' : '?status=' + key %>"
-           class="btn <%= status === key ? 'btn-primary' : '' %>" style="padding: 6px 16px;"><%= label %></a>
+           class="filter-btn <%= status === key ? 'active' : '' %>"><%= label %></a>
     <% }) %>
 </div>
 
-<div style="margin-bottom: 20px; padding: 14px 18px; background: #FEE2E2; color: #991B1B; border-radius: 8px;">
-    Total unpaid: <strong><%= helpers.formatMoney(unpaid.total) %></strong> across <%= unpaid.count %> penalt<%= unpaid.count === 1 ? 'y' : 'ies' %>.
-</div>
-
 <div class="table-container">
-    <h3 style="padding: 16px; margin: 0; border-bottom: 1px solid #E5E7EB;">Penalties (<%= rentals.length %>)</h3>
+    <h3>Penalties <span class="count">(<%= rentals.length %>)</span></h3>
     <% if (rentals.length > 0) { %>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%;">
-                <thead>
-                    <tr><th>Student</th><th>Email</th><th>Item</th><th>Reason</th><th>Amount</th><th>Returned</th><th>Status</th><th>Action</th></tr>
-                </thead>
-                <tbody>
-                    <% rentals.forEach(r => { %>
-                        <% const p = r.penalty; const open = !p.paid && !p.waived; %>
-                        <tr>
-                            <td><%= r.user ? r.user.name : '—' %></td>
-                            <td><%= r.user ? r.user.email : '—' %></td>
-                            <td><%= r.itemName %> <small>(<%= r.itemCode %>)</small></td>
-                            <td><%= p.reason %></td>
-                            <td><strong><%= helpers.formatMoney(p.amount) %></strong></td>
-                            <td><%= helpers.formatDate(r.returnDate) %></td>
-                            <td><%- helpers.penaltyBadge(p) %></td>
-                            <td>
-                                <% if (open) { %>
-                                    <div style="display: flex; gap: 6px;">
-                                        <form method="POST" action="/admin/penalties/<%= r._id %>/paid" onsubmit="return confirm('Mark this penalty as paid?')">
-                                            <input type="hidden" name="back_status" value="<%= status %>">
-                                            <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px;">Mark as Paid</button>
-                                        </form>
-                                        <form method="POST" action="/admin/penalties/<%= r._id %>/waive" onsubmit="return confirm('Waive this penalty? The student will no longer owe it.')">
-                                            <input type="hidden" name="back_status" value="<%= status %>">
-                                            <button type="submit" class="btn" style="padding: 4px 12px; font-size: 12px; background: #6B7280; color: white;">Waive</button>
-                                        </form>
-                                    </div>
-                                <% } else { %>
-                                    <small style="color: #6B7280;">
-                                        <%= p.waived ? 'Waived' : 'Paid' %> on <%= helpers.formatDate(p.paidAt) %><% if (p.paidBy) { %> by <%= p.paidBy.name %><% } %>
-                                    </small>
-                                <% } %>
-                            </td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
-        </div>
+        <table>
+            <thead>
+                <tr><th>Student</th><th>Email</th><th>Item</th><th>Reason</th><th>Amount</th><th>Returned</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                <% rentals.forEach(r => { %>
+                    <% const p = r.penalty; const open = !p.paid && !p.waived; %>
+                    <tr>
+                        <td><%= r.user ? r.user.name : '—' %></td>
+                        <td><%= r.user ? r.user.email : '—' %></td>
+                        <td><%= r.itemName %> <small>(<%= r.itemCode %>)</small></td>
+                        <td><%= p.reason %></td>
+                        <td><strong><%= helpers.formatMoney(p.amount) %></strong></td>
+                        <td><%= helpers.formatDate(r.returnDate) %></td>
+                        <td><%- helpers.penaltyBadge(p) %></td>
+                        <td>
+                            <% if (open) { %>
+                                <div class="row-actions">
+                                    <form method="POST" action="/admin/penalties/<%= r._id %>/paid"
+                                          data-confirm="Confirm that the student has paid this penalty. They will be able to borrow again."
+                                          data-confirm-title="Mark as paid" data-confirm-label="Mark as paid">
+                                        <input type="hidden" name="back_status" value="<%= status %>">
+                                        <button type="submit" class="btn btn-sm btn-primary">Mark as paid</button>
+                                    </form>
+                                    <form method="POST" action="/admin/penalties/<%= r._id %>/waive"
+                                          data-confirm="The student will no longer owe this penalty."
+                                          data-confirm-title="Waive penalty" data-confirm-label="Waive" data-confirm-type="danger">
+                                        <input type="hidden" name="back_status" value="<%= status %>">
+                                        <button type="submit" class="btn btn-sm">Waive</button>
+                                    </form>
+                                </div>
+                            <% } else { %>
+                                <small><%= p.waived ? 'Waived' : 'Paid' %> on <%= helpers.formatDate(p.paidAt) %><% if (p.paidBy) { %> by <%= p.paidBy.name %><% } %></small>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
     <% } else { %>
-        <p style="padding: 40px; text-align: center; color: #6B7280;">No penalties found.</p>
+        <div class="empty-state"><p>No penalties found.</p></div>
     <% } %>
 </div>
 

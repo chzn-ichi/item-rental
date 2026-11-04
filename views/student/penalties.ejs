@@ -1,28 +1,42 @@
 <%- include('../partials/student-top', { title: 'Penalties', activePage: 'penalties' }) %>
 
-<h1 class="page-title">My Penalties</h1>
+<div class="page-head">
+    <div>
+        <h1 class="page-title">My penalties</h1>
+        <p class="page-sub">Penalties are paid in person to the dorm officer.</p>
+    </div>
+</div>
 
 <% if (penalty.count > 0) { %>
-    <div class="alert alert-error">
-        Total unpaid: <strong><%= helpers.formatMoney(penalty.total) %></strong>.
-        Pay the dorm officer in person, and they will mark it as paid. Borrowing is paused until then.
+    <div class="summary-card owing">
+        <div>
+            <div class="summary-label">Unpaid balance</div>
+            <div class="summary-value"><%= helpers.formatMoney(penalty.total) %></div>
+        </div>
+        <p class="summary-note">Pay the dorm officer in person, and they will mark it as paid. Borrowing is paused until then.</p>
     </div>
 <% } else { %>
-    <div class="alert alert-success">✓ You have no unpaid penalties.</div>
+    <div class="summary-card">
+        <div>
+            <div class="summary-label">Unpaid balance</div>
+            <div class="summary-value">₱0.00</div>
+        </div>
+        <span class="pill-calm">All settled</span>
+    </div>
 <% } %>
 
 <div class="table-container">
     <% if (rentals.length > 0) { %>
         <table class="data-table">
             <thead>
-                <tr><th>Item</th><th>Reason</th><th>Amount</th><th>Date Returned</th><th>Status</th></tr>
+                <tr><th>Item</th><th>Reason</th><th>Amount</th><th>Date returned</th><th>Status</th></tr>
             </thead>
             <tbody>
                 <% rentals.forEach(r => { %>
                     <tr>
                         <td><%= r.itemName %> <small>(<%= r.itemCode %>)</small></td>
                         <td><%= r.penalty.reason %></td>
-                        <td><%= helpers.formatMoney(r.penalty.amount) %></td>
+                        <td><strong><%= helpers.formatMoney(r.penalty.amount) %></strong></td>
                         <td><%= helpers.formatDate(r.returnDate) %></td>
                         <td><%- helpers.penaltyBadge(r.penalty) %></td>
                     </tr>
@@ -30,7 +44,7 @@
             </tbody>
         </table>
     <% } else { %>
-        <div class="empty-state">No penalties on record.</div>
+        <div class="empty-state"><i class="ti ti-inbox" aria-hidden="true"></i><p>No penalties on record.</p></div>
     <% } %>
 </div>
 

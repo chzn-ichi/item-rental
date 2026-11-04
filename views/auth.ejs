@@ -1,183 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Item Rental System - Login & Register</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <style>
-        /* Show/hide password toggle */
-        .password-wrapper {
-            position: relative;
-        }
-        .password-wrapper input {
-            width: 100%;
-            box-sizing: border-box;
-            padding-right: 46px;
-        }
-        .toggle-password {
-            position: absolute;
-            top: 50%;
-            right: 10px;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #6b7280;
-        }
-        .toggle-password:hover,
-        .toggle-password:focus-visible {
-            color: #111827;
-            outline: none;
-        }
-        .toggle-password svg {
-            width: 20px;
-            height: 20px;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .toggle-password .icon-eye-off { display: none; }
-        .toggle-password.visible .icon-eye { display: none; }
-        .toggle-password.visible .icon-eye-off { display: block; }
+<%- include('partials/auth-top', { title: 'Login' }) %>
 
-        /* Forgot password link */
-        .forgot-link {
-            text-align: right;
-            margin: -6px 0 16px;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body class="auth-page">
-    <div class="auth-container">
-        <!-- Left Panel - Branding Section -->
-        <div class="auth-left">
-            <div class="brand-content">
-                <div class="brand-icon">
-                    <span class="brand-logo">R</span>
-                </div>
-                <h1 class="brand-title">Dorm Item Rental</h1>
-                <p class="brand-description">Efficient dormitory item management for students and staff.</p>
+<div class="form-toggles">
+    <button type="button" class="toggle-btn <%= activeForm === 'login' ? 'active' : '' %>" onclick="showForm('login')">Login</button>
+    <button type="button" class="toggle-btn <%= activeForm === 'register' ? 'active' : '' %>" onclick="showForm('register')">Register</button>
+</div>
 
-                <div class="feature-list">
-                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Easy item borrowing</span></div>
-                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Track your rentals</span></div>
-                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Multiple categories</span></div>
-                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Penalty management</span></div>
-                </div>
-            </div>
+<!-- Login form -->
+<div id="login-form" class="auth-form" style="display: <%= activeForm === 'login' ? 'block' : 'none' %>">
+    <h2>Welcome back</h2>
+    <p class="form-subtitle">Login to manage your item rentals</p>
+
+    <% if (error && activeForm === 'login') { %><div class="alert alert-error"><%= error %></div><% } %>
+    <% if (success && activeForm === 'login') { %><div class="alert alert-success"><%= success %></div><% } %>
+
+    <form method="POST" action="/login">
+        <div class="form-group">
+            <label>Email address</label>
+            <input type="email" name="email" required placeholder="your@email.com">
         </div>
+        <%- include('partials/password-field', { label: 'Password', name: 'password', placeholder: 'Enter your password' }) %>
+        <div class="forgot-link"><a href="/forgot-password">Forgot password?</a></div>
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+    </form>
+</div>
 
-        <!-- Right Panel - Form Section -->
-        <div class="auth-right">
-            <div class="form-container">
-                <div class="form-toggles">
-                    <button type="button" class="toggle-btn <%= activeForm === 'login' ? 'active' : '' %>" onclick="showForm('login', this)">Login</button>
-                    <button type="button" class="toggle-btn <%= activeForm === 'register' ? 'active' : '' %>" onclick="showForm('register', this)">Register</button>
-                </div>
+<!-- Register form -->
+<div id="register-form" class="auth-form" style="display: <%= activeForm === 'register' ? 'block' : 'none' %>">
+    <h2>Create account</h2>
+    <p class="form-subtitle">Join us to start borrowing items</p>
 
-                <!-- Login Form -->
-                <div id="login-form" class="auth-form" style="display: <%= activeForm === 'login' ? 'block' : 'none' %>">
-                    <h2>Welcome Back</h2>
-                    <p class="form-subtitle">Login to manage your item rentals</p>
+    <% if (error && activeForm === 'register') { %><div class="alert alert-error"><%= error %></div><% } %>
 
-                    <% if (error && activeForm === 'login') { %>
-                        <div class="alert alert-error"><%= error %></div>
-                    <% } %>
-                    <% if (success && activeForm === 'login') { %>
-                        <div class="alert alert-success"><%= success %></div>
-                    <% } %>
-
-                    <form method="POST" action="/login">
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" name="email" required placeholder="your@email.com">
-                        </div>
-                        <div class="form-group">
-                            <label>Password</label>
-                            <div class="password-wrapper">
-                                <input type="password" name="password" required placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;">
-                                <button type="button" class="toggle-password" onclick="togglePassword(this)" aria-label="Show password">
-                                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="forgot-link"><a href="/forgot-password">Forgot password?</a></div>
-                        <button type="submit" class="btn btn-primary btn-block">Login</button>
-                    </form>
-                </div>
-
-                <!-- Register Form -->
-                <div id="register-form" class="auth-form" style="display: <%= activeForm === 'register' ? 'block' : 'none' %>">
-                    <h2>Create Account</h2>
-                    <p class="form-subtitle">Join us to start borrowing items</p>
-
-                    <% if (error && activeForm === 'register') { %>
-                        <div class="alert alert-error"><%= error %></div>
-                    <% } %>
-
-                    <form method="POST" action="/register">
-                        <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" name="name" required placeholder="Juan Dela Cruz">
-                        </div>
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" name="email" required placeholder="juan@student.com">
-                        </div>
-                        <div class="form-group">
-                            <label>Password</label>
-                            <div class="password-wrapper">
-                                <input type="password" name="password" required placeholder="Minimum 6 characters">
-                                <button type="button" class="toggle-password" onclick="togglePassword(this)" aria-label="Show password">
-                                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Confirm Password</label>
-                            <div class="password-wrapper">
-                                <input type="password" name="confirm_password" required placeholder="Re-enter password">
-                                <button type="button" class="toggle-password" onclick="togglePassword(this)" aria-label="Show password">
-                                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">Register Now</button>
-                    </form>
-
-                    <p class="form-footer">Already have an account? <a href="#" onclick="showForm('login'); return false;">Login here</a></p>
-                </div>
-            </div>
+    <form method="POST" action="/register">
+        <div class="form-group">
+            <label>Full name</label>
+            <input type="text" name="name" required placeholder="Juan Dela Cruz">
         </div>
-    </div>
+        <div class="form-group">
+            <label>Email address</label>
+            <input type="email" name="email" required placeholder="juan@student.com">
+        </div>
+        <%- include('partials/password-field', { label: 'Password', name: 'password', placeholder: 'Minimum 6 characters' }) %>
+        <%- include('partials/password-field', { label: 'Confirm password', name: 'confirm_password', placeholder: 'Re-enter password' }) %>
+        <button type="submit" class="btn btn-primary btn-block">Register now</button>
+    </form>
 
-    <script>
-        function showForm(form, btn) {
-            document.getElementById('login-form').style.display = form === 'login' ? 'block' : 'none';
-            document.getElementById('register-form').style.display = form === 'register' ? 'block' : 'none';
-            document.querySelectorAll('.toggle-btn').forEach((b, i) => {
-                b.classList.toggle('active', (i === 0) === (form === 'login'));
-            });
-        }
+    <p class="form-footer">Already have an account? <a href="#" onclick="showForm('login'); return false;">Login here</a></p>
+</div>
 
-        function togglePassword(btn) {
-            const input = btn.parentElement.querySelector('input');
-            const showing = input.type === 'text';
-            input.type = showing ? 'password' : 'text';
-            btn.classList.toggle('visible', !showing);
-            btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-        }
-    </script>
-</body>
-</html>
+<%- include('partials/auth-bottom') %>

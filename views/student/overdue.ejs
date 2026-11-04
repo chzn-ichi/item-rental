@@ -1,14 +1,19 @@
-<%- include('../partials/student-top', { title: 'Overdue Rentals', activePage: 'overdue' }) %>
+<%- include('../partials/student-top', { title: 'Overdue', activePage: 'overdue' }) %>
 
-<h1 class="page-title">Overdue Rentals</h1>
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Overdue rentals</h1>
+        <p class="page-sub">Return these as soon as you can.</p>
+    </div>
+</div>
 
 <div class="table-container">
     <% if (rentals.length > 0) { %>
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Item Code</th><th>Item Name</th><th>Category</th>
-                    <th>Borrow Date</th><th>Due Date</th><th>Days Overdue</th><th>Status</th>
+                    <th>Item code</th><th>Item name</th><th>Category</th>
+                    <th>Borrow date</th><th>Due date</th><th>Days overdue</th><th>Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -19,14 +24,14 @@
                         <td><%- helpers.categoryBadge(r.category) %></td>
                         <td><%= helpers.formatDate(r.borrowDate) %></td>
                         <td><%= helpers.formatDate(r.dueDate) %></td>
-                        <td><span style="color: #EF4444; font-weight: bold;"><%= helpers.daysOverdue(r.dueDate) %> days</span></td>
+                        <td><span class="text-danger"><%= helpers.daysOverdue(r.dueDate) %> days</span></td>
                         <td><%- helpers.rentalStatusBadge(r.status) %></td>
                     </tr>
                 <% }) %>
             </tbody>
         </table>
     <% } else { %>
-        <div class="empty-state">No overdue rentals. Great job returning on time!</div>
+        <div class="empty-state"><i class="ti ti-mood-smile" aria-hidden="true"></i><p>No overdue rentals. Great job returning on time!</p></div>
     <% } %>
 </div>
 

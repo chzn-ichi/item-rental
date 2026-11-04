@@ -1,24 +1,25 @@
 <%- include('../partials/student-top', { title: title, activePage: 'myrentals' }) %>
 
-<h1 class="page-title"><%= title %></h1>
+<div class="page-head">
+    <h1 class="page-title"><%= title %></h1>
+</div>
+
+<%- include('../partials/messages', { success: success, error: error }) %>
 
 <div class="category-filter">
     <a href="/my-rentals" class="filter-btn <%= tab === 'all' ? 'active' : '' %>">All</a>
     <a href="/my-rentals?tab=pending" class="filter-btn <%= tab === 'pending' ? 'active' : '' %>">Pending</a>
     <a href="/my-rentals?tab=active" class="filter-btn <%= tab === 'active' ? 'active' : '' %>">Active</a>
-    <a href="/my-rentals?tab=returning" class="filter-btn <%= tab === 'returning' ? 'active' : '' %>">Pending Return</a>
+    <a href="/my-rentals?tab=returning" class="filter-btn <%= tab === 'returning' ? 'active' : '' %>">Pending return</a>
 </div>
-
-<% if (success) { %><div class="alert alert-success">✓ <%= success %></div><% } %>
-<% if (error) { %><div class="alert alert-error">✗ <%= error %></div><% } %>
 
 <div class="table-container">
     <% if (rentals.length > 0) { %>
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Item Code</th><th>Item Name</th><th>Category</th>
-                    <th>Borrow Date</th><th>Due Date</th><th>Status</th><th>Action</th>
+                    <th>Item code</th><th>Item name</th><th>Category</th>
+                    <th>Borrow date</th><th>Due date</th><th>Status</th><th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -32,14 +33,21 @@
                         <td><%- helpers.rentalStatusBadge(r.status) %></td>
                         <td>
                             <% if (r.status === 'approved') { %>
-                                <form method="POST" action="/my-rentals/return">
+                                <form method="POST" action="/my-rentals/return"
+                                      data-confirm="The admin will check the item's condition. Only request a return once you're ready to hand it over."
+                                      data-confirm-title="Request return" data-confirm-label="Request return">
                                     <input type="hidden" name="return_rental_id" value="<%= r._id %>">
-                                    <button type="submit" class="btn-warning">Request Return</button>
+                                    <button type="submit" class="btn-warning btn-sm">Request return</button>
                                 </form>
                             <% } else if (r.status === 'pending_return') { %>
                                 <small>Waiting for admin</small>
                             <% } else if (r.status === 'pending') { %>
-                                <small>Waiting for approval</small>
+                                <form method="POST" action="/my-rentals/cancel"
+                                      data-confirm="Cancel your request for <%= r.itemName %> (<%= r.itemCode %>)? The item will be available for others again."
+                                      data-confirm-title="Cancel request" data-confirm-label="Cancel request" data-confirm-type="danger">
+                                    <input type="hidden" name="cancel_rental_id" value="<%= r._id %>">
+                                    <button type="submit" class="btn btn-sm btn-danger-outline">Cancel</button>
+                                </form>
                             <% } else { %>
                                 —
                             <% } %>
@@ -49,7 +57,7 @@
             </tbody>
         </table>
     <% } else { %>
-        <div class="empty-state">No <%= title.toLowerCase() %> found.</div>
+        <div class="empty-state"><i class="ti ti-inbox" aria-hidden="true"></i><p>No <%= title.toLowerCase() %> found.</p></div>
     <% } %>
 </div>
 

@@ -239,3 +239,32 @@ router.get('/penalties', async (req, res) => {
 });
 
 module.exports = router;
+
+
+// Student cancels their own request, only while it is still pending
+router.post('/my-rentals/cancel', async (req, res) => {
+  try {
+    const rentalId = req.body.cancel_rental_id;
+    let cancelled = null;
+
+    if (mongoose.isValidObjectId(rentalId)) {
+      cancelled = await Rental.findOneAndDelete({
+        _id: rentalId,
+        user: req.session.userId,
+        status: 'pending',
+      });
+    }
+
+    if (cancelled) {
+      // Release the item so other students can borrow it
+      await Item.updateOne({ _id: cancelled.item, status: 'rented' }, { status: 'available' });
+    }
+
+    await renderMyRentals(req, res, cancelled
+      ? { success: 'Request cancelled. The item is available again.' }
+      : { error: 'This request can no longer be cancelled.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Something went wrong.');
+  }
+});
