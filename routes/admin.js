@@ -4,6 +4,12 @@ const Item = require('../models/Item');
 const Rental = require('../models/Rental');
 const User = require('../models/User');
 const { isAdmin } = require('../middleware/auth');
+const {
+  sendRentalApprovedEmail,
+  sendRentalRejectedEmail,
+  sendReturnProcessedEmail,
+  sendPenaltySettledEmail,
+} = require('../utils/mailer');
 
 const router = express.Router();
 router.use(isAdmin); // every route in this file is admin-only
@@ -26,6 +32,17 @@ const safe = (fn) => (req, res, next) =>
     console.error(err);
     res.status(500).send('Something went wrong.');
   });
+
+// Looks up the student and sends them an email. Never throws, so a failed
+// email can't break the admin action that triggered it. Call it without await.
+async function emailStudent(userId, sendFn, data) {
+  try {
+    const student = await User.findById(userId).select('name email');
+    if (student) await sendFn({ to: student.email, name: student.name, ...data });
+  } catch (err) {
+    console.error('Could not send student email:', err.message);
+  }
+}
 
 const validId = (id) => mongoose.isValidObjectId(id);
 const itemsUrl = (c) =>
@@ -178,9 +195,17 @@ router.post('/rentals/:id/approve', safe(async (req, res) => {
 
   const rental = await Rental.findOneAndUpdate(
     { _id: req.params.id, status: 'pending' },
-    { status: 'approved', dueDate: due }
+    { status: 'approved', dueDate: due },
+    { new: true }
   );
   if (!rental) return go(req, res, back, 'error', 'Request not found or already handled.');
+
+  emailStudent(rental.user, sendRentalApprovedEmail, {
+    itemName: rental.itemName,
+    itemCode: rental.itemCode,
+    dueDate: rental.dueDate,
+  });
+
   go(req, res, back, 'success', 'Rental request approved.');
 }));
 
@@ -192,6 +217,12 @@ router.post('/rentals/:id/reject', safe(async (req, res) => {
   if (!rental) return go(req, res, back, 'error', 'Request not found or already handled.');
 
   await Item.updateOne({ _id: rental.item, status: 'rented' }, { status: 'available' });
+
+  emailStudent(rental.user, sendRentalRejectedEmail, {
+    itemName: rental.itemName,
+    itemCode: rental.itemCode,
+  });
+
   go(req, res, back, 'success', 'Rental request rejected.');
 }));
 
@@ -236,11 +267,18 @@ router.post('/returns/process', safe(async (req, res) => {
   const itemStatus = { good: 'available', dirty: 'maintenance', damaged: 'damaged' }[condition];
   await Item.updateOne({ _id: rental.item }, { status: itemStatus });
 
+  emailStudent(rental.user, sendReturnProcessedEmail, {
+    itemName: rental.itemName,
+    itemCode: rental.itemCode,
+    condition,
+    penaltyAmount: amount,
+  });
+
   const messages = {
     good: 'Item returned successfully. Condition: Good.',
     dirty: 'Item returned. Condition: Dirty. It is now Under Maintenance until you mark it available.',
     damaged: amount > 0
-      ? `Item marked as damaged. Penalty of ₱${amount.toFixed(2)} added.`
+      ? `Item marked as damaged. Penalty of \u20B1${amount.toFixed(2)} added.`
       : 'Item marked as damaged. No penalty added.',
   };
   go(req, res, back, 'success', messages[condition]);
@@ -268,6 +306,14 @@ router.post('/penalties/:id/paid', safe(async (req, res) => {
     { $set: { 'penalty.paid': true, 'penalty.paidAt': new Date(), 'penalty.paidBy': req.session.userId } }
   );
   if (!rental) return go(req, res, back, 'error', 'Penalty not found or already settled.');
+
+  emailStudent(rental.user, sendPenaltySettledEmail, {
+    itemName: rental.itemName,
+    itemCode: rental.itemCode,
+    amount: rental.penalty.amount,
+    waived: false,
+  });
+
   go(req, res, back, 'success', 'Penalty marked as paid. The student can borrow again.');
 }));
 
@@ -280,6 +326,14 @@ router.post('/penalties/:id/waive', safe(async (req, res) => {
     { $set: { 'penalty.waived': true, 'penalty.paidAt': new Date(), 'penalty.paidBy': req.session.userId } }
   );
   if (!rental) return go(req, res, back, 'error', 'Penalty not found or already settled.');
+
+  emailStudent(rental.user, sendPenaltySettledEmail, {
+    itemName: rental.itemName,
+    itemCode: rental.itemCode,
+    amount: rental.penalty.amount,
+    waived: true,
+  });
+
   go(req, res, back, 'success', 'Penalty waived.');
 }));
 

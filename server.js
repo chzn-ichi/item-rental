@@ -1,10 +1,17 @@
 require('dotenv').config();
+
+// Optional: only needed on networks where the default DNS can't resolve mongodb+srv:// addresses
+if (process.env.DNS_SERVERS) {
+  require('dns').setServers(process.env.DNS_SERVERS.split(',').map((s) => s.trim()));
+}
+
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
 const connectDB = require('./config/db');
 const { exposeUser } = require('./middleware/auth');
+const { startReminderJob } = require('./utils/reminders');
 
 const app = express();
 
@@ -46,4 +53,5 @@ connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
+  startReminderJob();
 });

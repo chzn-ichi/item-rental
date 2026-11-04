@@ -37,6 +37,10 @@ const rentalSchema = new mongoose.Schema(
     returnCondition: { type: String, enum: ['good', 'dirty', 'damaged'] },
 
     penalty: { type: penaltySchema, default: undefined },
+
+    // Email reminder flags, so each reminder is only sent once
+    dueSoonNotified: { type: Boolean, default: false },
+    overdueNotified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
