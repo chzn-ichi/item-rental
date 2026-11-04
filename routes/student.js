@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Item = require('../models/Item');
 const Rental = require('../models/Rental');
 const { isStudent } = require('../middleware/auth');
+const { sendBorrowRequestEmail } = require('../utils/mailer');
 
 const router = express.Router();
 router.use(['/dashboard', '/borrow', '/my-rentals', '/overdue', '/penalties'], isStudent);
@@ -132,6 +133,14 @@ router.post('/borrow', async (req, res) => {
       await Item.updateOne({ _id: item._id }, { status: 'available' });
       throw err;
     }
+
+    // Confirmation email (never blocks or breaks the request)
+    sendBorrowRequestEmail({
+      to: req.session.email,
+      name: req.session.userName,
+      itemName: item.itemName,
+      itemCode: item.itemCode,
+    });
 
     await renderBorrow(req, res, {
       success: 'Borrow request submitted. Wait for admin approval.',

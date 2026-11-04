@@ -5,6 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Item Rental System - Login & Register</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Show/hide password toggle */
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            width: 100%;
+            box-sizing: border-box;
+            padding-right: 46px;
+        }
+        .toggle-password {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .toggle-password:hover,
+        .toggle-password:focus-visible {
+            color: #111827;
+            outline: none;
+        }
+        .toggle-password svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .toggle-password .icon-eye-off { display: none; }
+        .toggle-password.visible .icon-eye { display: none; }
+        .toggle-password.visible .icon-eye-off { display: block; }
+
+        /* Forgot password link */
+        .forgot-link {
+            text-align: right;
+            margin: -6px 0 16px;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body class="auth-page">
     <div class="auth-container">
@@ -18,10 +67,10 @@
                 <p class="brand-description">Efficient dormitory item management for students and staff.</p>
 
                 <div class="feature-list">
-                    <div class="feature-item"><div class="feature-check">✓</div><span>Easy item borrowing</span></div>
-                    <div class="feature-item"><div class="feature-check">✓</div><span>Track your rentals</span></div>
-                    <div class="feature-item"><div class="feature-check">✓</div><span>Multiple categories</span></div>
-                    <div class="feature-item"><div class="feature-check">✓</div><span>Penalty management</span></div>
+                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Easy item borrowing</span></div>
+                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Track your rentals</span></div>
+                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Multiple categories</span></div>
+                    <div class="feature-item"><div class="feature-check">&#10003;</div><span>Penalty management</span></div>
                 </div>
             </div>
         </div>
@@ -53,8 +102,15 @@
                         </div>
                         <div class="form-group">
                             <label>Password</label>
-                            <input type="password" name="password" required placeholder="••••••••">
+                            <div class="password-wrapper">
+                                <input type="password" name="password" required placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;">
+                                <button type="button" class="toggle-password" onclick="togglePassword(this)" aria-label="Show password">
+                                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                            </div>
                         </div>
+                        <div class="forgot-link"><a href="/forgot-password">Forgot password?</a></div>
                         <button type="submit" class="btn btn-primary btn-block">Login</button>
                     </form>
                 </div>
@@ -79,11 +135,23 @@
                         </div>
                         <div class="form-group">
                             <label>Password</label>
-                            <input type="password" name="password" required placeholder="Minimum 6 characters">
+                            <div class="password-wrapper">
+                                <input type="password" name="password" required placeholder="Minimum 6 characters">
+                                <button type="button" class="toggle-password" onclick="togglePassword(this)" aria-label="Show password">
+                                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Confirm Password</label>
-                            <input type="password" name="confirm_password" required placeholder="Re-enter password">
+                            <div class="password-wrapper">
+                                <input type="password" name="confirm_password" required placeholder="Re-enter password">
+                                <button type="button" class="toggle-password" onclick="togglePassword(this)" aria-label="Show password">
+                                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary btn-block">Register Now</button>
                     </form>
@@ -101,6 +169,14 @@
             document.querySelectorAll('.toggle-btn').forEach((b, i) => {
                 b.classList.toggle('active', (i === 0) === (form === 'login'));
             });
+        }
+
+        function togglePassword(btn) {
+            const input = btn.parentElement.querySelector('input');
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            btn.classList.toggle('visible', !showing);
+            btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
         }
     </script>
 </body>
