@@ -123,7 +123,8 @@ function buildEmail({
     paragraphs = [],
     details = [],
     button = null,
-    note = ''
+    note = '',
+    code = ''
 }) {
     const app = appName();
     const t = TONES[tone] || TONES.info;
@@ -131,6 +132,7 @@ function buildEmail({
     // ----- Plain text version -----
     const textLines = [heading, '', `Hi ${name || 'there'},`, ''];
     paragraphs.forEach((p) => textLines.push(p, ''));
+    if (code) textLines.push(`Your code: ${code}`, '');
     if (details.length) {
         details.forEach(([label, value]) => textLines.push(`${label}: ${value}`));
         textLines.push('');
@@ -183,6 +185,10 @@ function buildEmail({
         ? `<p style="margin: 8px 0 0; padding-top: 16px; border-top: 1px solid ${THEME.border}; font-size: 13px; line-height: 1.6; color: ${THEME.muted};">${escapeHtml(note)}</p>`
         : '';
 
+    const codeHtml = code
+        ? `<div style="margin: 8px 0 24px; padding: 18px; text-align: center; background: ${THEME.panelBg}; border: 1px solid ${THEME.border}; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: ${THEME.text};">${escapeHtml(code)}</div>`
+        : '';
+
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -216,6 +222,7 @@ function buildEmail({
                             <h1 style="margin: 16px 0 20px; font-size: 24px; line-height: 1.3; color: ${THEME.text};">${escapeHtml(heading)}</h1>
                             <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: ${THEME.text};">Hi ${escapeHtml(name || 'there')},</p>
                             ${paragraphsHtml}
+                            ${codeHtml}
                             ${detailsHtml}
                             ${buttonHtml}
                             ${noteHtml}
@@ -426,6 +433,45 @@ function sendOverdueEmail({ to, name, itemName, itemCode, dueDate }) {
     return trySend({ to, subject: 'Your rental is overdue', text, html });
 }
 
+
+function sendVerificationCodeEmail({ to, name, code }) {
+    // Development helper: print the code in the terminal (set LOG_OTP=true in .env)
+    if (process.env.LOG_OTP === 'true') console.log(`[OTP] ${to}: ${code}`);
+
+    const { text, html } = buildEmail({
+        name,
+        heading: 'Verify your email',
+        badge: 'Security',
+        tone: 'info',
+        preheader: `Your verification code is ${code}. It expires in 10 minutes.`,
+        paragraphs: [
+            `Use this code to finish creating your ${appName()} account. It expires in 10 minutes.`
+        ],
+        code,
+        note: 'If you did not create an account, you can ignore this email.'
+    });
+    return trySend({ to, subject: `Your ${appName()} verification code`, text, html });
+}
+
+
+function sendDeadlineExtendedEmail({ to, name, itemName, itemCode, dueDate }) {
+    const { text, html } = buildEmail({
+        name,
+        heading: 'Your deadline was extended',
+        badge: 'Extended',
+        tone: 'info',
+        preheader: `${itemName} is now due on ${formatDate(dueDate)}.`,
+        paragraphs: ['The admin extended the deadline for the item below.'],
+        details: [
+            ['Item', `${itemName} (${itemCode})`],
+            ['New due date', formatDate(dueDate)]
+        ],
+        button: linkButton('View My Rentals', '/my-rentals')
+    });
+    return trySend({ to, subject: 'Your rental deadline was extended', text, html });
+}
+
+
 module.exports = {
     sendMail,
     sendPasswordResetEmail,
@@ -436,5 +482,7 @@ module.exports = {
     sendReturnProcessedEmail,
     sendPenaltySettledEmail,
     sendDueSoonEmail,
-    sendOverdueEmail
+    sendOverdueEmail,
+    sendVerificationCodeEmail,
+    sendDeadlineExtendedEmail
 };

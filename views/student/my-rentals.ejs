@@ -29,7 +29,7 @@
                         <td><%= r.itemName %></td>
                         <td><%- helpers.categoryBadge(r.category) %></td>
                         <td><%= helpers.formatDate(r.borrowDate) %></td>
-                        <td><%= helpers.formatDate(r.dueDate) %></td>
+                        <td><%= r.status === 'pending' ? '—' : helpers.formatDate(r.dueDate) %></td>
                         <td><%- helpers.rentalStatusBadge(r.status) %></td>
                         <td>
                             <% if (r.status === 'approved') { %>

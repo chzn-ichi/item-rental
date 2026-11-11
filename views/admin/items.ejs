@@ -9,7 +9,10 @@
 
 <div class="table-container">
     <h3>Add new item</h3>
-    <form method="POST" action="/admin/items/add" class="card-body">
+    <form method="POST" action="/admin/items/add" class="card-body"
+          data-confirm="Check that the details are correct before adding."
+          data-confirm-title="Add item" data-confirm-label="Add item"
+          data-confirm-fields="item_code:Item code|item_name:Item name|category:Category|status:Initial status|quantity:Quantity">
         <input type="hidden" name="back_category" value="<%= category %>">
         <div class="form-row">
             <div>
@@ -34,16 +37,32 @@
                     <option value="damaged">Damaged</option>
                 </select>
             </div>
+            <div>
+                <label>Quantity</label>
+                <input type="number" name="quantity" value="1" min="1" max="100" required class="field">
+            </div>
             <div><button type="submit" class="btn btn-primary btn-block">Add item</button></div>
         </div>
+        <p class="form-hint">A quantity above 1 creates numbered units. Enter a prefix such as MAT and you get MAT-001, MAT-002, and so on, continuing from the last number already used.</p>
     </form>
 </div>
 
-<div class="category-filter">
-    <a href="/admin/items" class="filter-btn <%= category === 'all' ? 'active' : '' %>">All categories</a>
-    <% categories.forEach(c => { %>
-        <a href="/admin/items?category=<%= encodeURIComponent(c) %>" class="filter-btn <%= category === c ? 'active' : '' %>"><%= c %></a>
-    <% }) %>
+<div class="toolbar">
+    <div class="category-filter">
+        <a href="/admin/items" class="filter-btn <%= category === 'all' ? 'active' : '' %>">All categories</a>
+        <% categories.forEach(c => { %>
+            <a href="/admin/items?category=<%= encodeURIComponent(c) %>" class="filter-btn <%= category === c ? 'active' : '' %>"><%= c %></a>
+        <% }) %>
+    </div>
+    <form method="GET" action="/admin/items" class="inline-form">
+        <input type="hidden" name="category" value="<%= category %>">
+        <label for="sort-by" class="date-label">Sort by</label>
+        <select id="sort-by" name="sort" class="select-sm" onchange="this.form.submit()">
+            <% Object.entries(sortOptions).forEach(([key, opt]) => { %>
+                <option value="<%= key %>" <%= sort === key ? 'selected' : '' %>><%= opt.label %></option>
+            <% }) %>
+        </select>
+    </form>
 </div>
 
 <div class="table-container">

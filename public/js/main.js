@@ -27,6 +27,7 @@ function togglePassword(btn) {
 }
 
 // Confirmation modal for any <form data-confirm="...">
+// Optional: data-confirm-fields="fieldName:Label|otherField:Label" shows a summary of the form's values
 (function () {
   let overlay = null;
   let pendingForm = null;
@@ -40,6 +41,7 @@ function togglePassword(btn) {
       '<div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-message">' +
         '<h2 class="modal-title" id="modal-title"></h2>' +
         '<p class="modal-message" id="modal-message"></p>' +
+        '<div class="modal-summary" hidden></div>' +
         '<div class="modal-actions">' +
           '<button type="button" class="btn" data-modal-cancel>Cancel</button>' +
           '<button type="button" class="btn" data-modal-confirm></button>' +
@@ -59,6 +61,36 @@ function togglePassword(btn) {
     });
   }
 
+  function renderSummary(form) {
+    const box = overlay.querySelector('.modal-summary');
+    box.innerHTML = '';
+    const spec = form.dataset.confirmFields;
+    if (spec) {
+      spec.split('|').forEach((pair) => {
+        const [name, label] = pair.split(':');
+        const el = form.elements[name];
+        if (!el) return;
+
+        let value = el.tagName === 'SELECT' ? el.options[el.selectedIndex].text : el.value.trim();
+        if (el.type === 'date' && value) {
+          value = new Date(value + 'T00:00:00').toLocaleDateString('en-US', {
+            month: 'short', day: '2-digit', year: 'numeric',
+          });
+        }
+
+        const row = document.createElement('div');
+        row.className = 'modal-row';
+        const left = document.createElement('span');
+        left.textContent = label;
+        const right = document.createElement('strong');
+        right.textContent = value || '—';
+        row.append(left, right);
+        box.appendChild(row);
+      });
+    }
+    box.hidden = box.children.length === 0;
+  }
+
   function open(form) {
     if (!overlay) build();
     pendingForm = form;
@@ -67,6 +99,7 @@ function togglePassword(btn) {
     const danger = form.dataset.confirmType === 'danger';
     overlay.querySelector('.modal-title').textContent = form.dataset.confirmTitle || 'Are you sure?';
     overlay.querySelector('.modal-message').textContent = form.dataset.confirm;
+    renderSummary(form);
 
     const confirmBtn = overlay.querySelector('[data-modal-confirm]');
     confirmBtn.textContent = form.dataset.confirmLabel || 'Confirm';

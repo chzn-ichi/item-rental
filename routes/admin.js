@@ -4,11 +4,13 @@ const Item = require('../models/Item');
 const Rental = require('../models/Rental');
 const User = require('../models/User');
 const { isAdmin } = require('../middleware/auth');
+const { dateInputValue } = require('../utils/helpers');
 const {
   sendRentalApprovedEmail,
   sendRentalRejectedEmail,
   sendReturnProcessedEmail,
   sendPenaltySettledEmail,
+  sendDeadlineExtendedEmail,
 } = require('../utils/mailer');
 
 const router = express.Router();
@@ -50,6 +52,26 @@ const itemsUrl = (c) =>
 const PENALTY_FILTERS = ['unpaid', 'paid', 'waived'];
 const penaltiesUrl = (s) =>
   PENALTY_FILTERS.includes(s) ? `/admin/penalties?status=${s}` : '/admin/penalties';
+
+// ---------- Due dates ----------
+const MAX_LOAN_DAYS = 30;
+
+// The chosen day counts until 23:59:59 Philippine time
+function parseDueDate(str) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str || '')) return null;
+  const due = new Date(`${str}T23:59:59.999+08:00`);
+  return Number.isNaN(due.getTime()) ? null : due;
+}
+
+// Earliest, latest, and default due dates the admin can pick (YYYY-MM-DD)
+function dueLimits() {
+  const now = new Date();
+  return {
+    minDue: dateInputValue(now, 1),
+    maxDue: dateInputValue(now, MAX_LOAN_DAYS),
+    defaultDue: dateInputValue(now, Rental.RENTAL_DAYS),
+  };
+}
 
 function penaltyQuery(status) {
   const q = { 'penalty.amount': { $gt: 0 } };
@@ -97,31 +119,79 @@ router.get('/dashboard', safe(async (req, res) => {
   });
 }));
 
+
+const ITEM_SORTS = {
+  category:  { label: 'Category, then code', sort: { category: 1, itemCode: 1 } },
+  newest:    { label: 'Date added: newest first', sort: { createdAt: -1, _id: -1 } },
+  oldest:    { label: 'Date added: oldest first', sort: { createdAt: 1, _id: 1 } },
+  code_asc:  { label: 'Item code: A to Z', sort: { itemCode: 1 } },
+  code_desc: { label: 'Item code: Z to A', sort: { itemCode: -1 } },
+  name_asc:  { label: 'Item name: A to Z', sort: { itemName: 1, itemCode: 1 } },
+  name_desc: { label: 'Item name: Z to A', sort: { itemName: -1, itemCode: 1 } },
+  status:    { label: 'Status', sort: { status: 1, itemCode: 1 } },
+};
+const hasSort = (key) => typeof key === 'string' && Object.hasOwn(ITEM_SORTS, key);
+
+
 // ---------- Manage Items ----------
 router.get('/items', safe(async (req, res) => {
   const category = Item.CATEGORIES.includes(req.query.category) ? req.query.category : 'all';
+  if (hasSort(req.query.sort)) req.session.itemSort = req.query.sort;
+  const sort = hasSort(req.session.itemSort) ? req.session.itemSort : 'category';
+
   const filter = category === 'all' ? {} : { category };
-  const items = await Item.find(filter).sort({ category: 1, itemCode: 1 });
-  res.render('admin/items', { items, category, categories: Item.CATEGORIES });
+  const items = await Item.find(filter)
+    .collation({ locale: 'en', numericOrdering: true })
+    .sort(ITEM_SORTS[sort].sort);
+
+  res.render('admin/items', { items, category, categories: Item.CATEGORIES, sort, sortOptions: ITEM_SORTS });
 }));
+
+const MAX_BATCH = 100;
 
 router.post('/items/add', safe(async (req, res) => {
   const back = itemsUrl(req.body.back_category);
-  const itemCode = (req.body.item_code || '').trim();
+  const code = (req.body.item_code || '').trim();
   const itemName = (req.body.item_name || '').trim();
   const category = req.body.category;
   const status = ['available', 'maintenance', 'damaged'].includes(req.body.status) ? req.body.status : 'available';
+  const quantity = Number.parseInt(req.body.quantity, 10) || 1;
 
-  if (!itemCode || !itemName) return go(req, res, back, 'error', 'Please enter item code and name.');
+  if (!code || !itemName) return go(req, res, back, 'error', 'Please enter item code and name.');
   if (!Item.CATEGORIES.includes(category)) return go(req, res, back, 'error', 'Invalid category.');
+  if (quantity < 1 || quantity > MAX_BATCH) {
+    return go(req, res, back, 'error', `Quantity must be between 1 and ${MAX_BATCH}.`);
+  }
+
+  // One unit: use the code exactly as typed
+  if (quantity === 1) {
+    try {
+      await Item.create({ itemCode: code, itemName, category, status });
+    } catch (err) {
+      if (err.code === 11000) return go(req, res, back, 'error', 'An item with that code already exists.');
+      throw err;
+    }
+    return go(req, res, back, 'success', 'Item added successfully.');
+  }
+
+  // Several units: the code is a prefix, numbered from the next free number
+  const prefix = code.replace(/-+$/, '');
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const existing = await Item.find({ itemCode: new RegExp(`^${escaped}-(\\d+)$`) }).select('itemCode');
+  const highest = existing.reduce((max, i) => Math.max(max, parseInt(i.itemCode.split('-').pop(), 10)), 0);
+
+  const docs = [];
+  for (let n = 1; n <= quantity; n++) {
+    docs.push({ itemCode: `${prefix}-${String(highest + n).padStart(3, '0')}`, itemName, category, status });
+  }
 
   try {
-    await Item.create({ itemCode, itemName, category, status });
+    await Item.insertMany(docs);
   } catch (err) {
-    if (err.code === 11000) return go(req, res, back, 'error', 'An item with that code already exists.');
+    if (err.code === 11000) return go(req, res, back, 'error', 'Some of those codes already exist. Try a different prefix.');
     throw err;
   }
-  go(req, res, back, 'success', 'Item added successfully.');
+  go(req, res, back, 'success', `${quantity} items added (${docs[0].itemCode} to ${docs[docs.length - 1].itemCode}).`);
 }));
 
 router.post('/items/:id/edit', safe(async (req, res) => {
@@ -182,16 +252,20 @@ router.get('/rentals', safe(async (req, res) => {
     Rental.find({ status: 'pending' }).sort({ createdAt: 1 }).populate('user', 'name email'),
     Rental.find({ status: 'approved' }).sort({ dueDate: 1 }).populate('user', 'name email'),
   ]);
-  res.render('admin/rentals', { pending, active, now: new Date() });
+  res.render('admin/rentals', { pending, active, now: new Date(), ...dueLimits() });
 }));
 
 router.post('/rentals/:id/approve', safe(async (req, res) => {
   const back = '/admin/rentals';
   if (!validId(req.params.id)) return go(req, res, back, 'error', 'Invalid rental.');
 
-  // The 7 days start counting from approval
-  const due = new Date();
-  due.setDate(due.getDate() + Rental.RENTAL_DAYS);
+  // The admin picks the deadline: between tomorrow and MAX_LOAN_DAYS from today
+  const { minDue, maxDue } = dueLimits();
+  const dueStr = req.body.due_date;
+  const due = parseDueDate(dueStr);
+  if (!due || dueStr < minDue || dueStr > maxDue) {
+    return go(req, res, back, 'error', `Choose a due date between tomorrow and ${MAX_LOAN_DAYS} days from now.`);
+  }
 
   const rental = await Rental.findOneAndUpdate(
     { _id: req.params.id, status: 'pending' },
@@ -207,6 +281,41 @@ router.post('/rentals/:id/approve', safe(async (req, res) => {
   });
 
   go(req, res, back, 'success', 'Rental request approved.');
+}));
+
+router.post('/rentals/:id/extend', safe(async (req, res) => {
+  const back = '/admin/rentals';
+  if (!validId(req.params.id)) return go(req, res, back, 'error', 'Invalid rental.');
+
+  const rental = await Rental.findOne({ _id: req.params.id, status: 'approved' });
+  if (!rental) return go(req, res, back, 'error', 'Only active rentals can be extended.');
+
+  const { minDue, maxDue } = dueLimits();
+  const dueStr = req.body.due_date;
+  const due = parseDueDate(dueStr);
+  console.log('EXTEND', { dueStr, current: rental.dueDate.toISOString(), chosen: due && due.toISOString() });
+  if (!due || dueStr < minDue || dueStr > maxDue) {
+    return go(req, res, back, 'error', `Choose a date between tomorrow and ${MAX_LOAN_DAYS} days from now.`);
+  }
+  if (due <= rental.dueDate) {
+    return go(req, res, back, 'error', 'A deadline can only be extended. Choose a date after the current due date.');
+  }
+
+  // The dueDate filter makes "only later" hold even if two admins act at the same moment
+  const updated = await Rental.findOneAndUpdate(
+    { _id: rental._id, status: 'approved', dueDate: { $lt: due } },
+    { dueDate: due },
+    { new: true }
+  );
+  if (!updated) return go(req, res, back, 'error', 'This rental changed. Please try again.');
+
+  emailStudent(updated.user, sendDeadlineExtendedEmail, {
+    itemName: updated.itemName,
+    itemCode: updated.itemCode,
+    dueDate: updated.dueDate,
+  });
+
+  go(req, res, back, 'success', 'Deadline extended.');
 }));
 
 router.post('/rentals/:id/reject', safe(async (req, res) => {

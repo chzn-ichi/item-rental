@@ -1,0 +1,27 @@
+<%- include('partials/auth-top', { title: 'Verify your email' }) %>
+
+<div class="auth-form">
+    <h2>Check your email</h2>
+    <p class="form-subtitle">We sent a 6-digit code to <strong><%= email %></strong>. It expires in 10 minutes.</p>
+
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+    <form method="POST" action="/verify">
+        <div class="form-group">
+            <label>Verification code</label>
+            <input type="text" name="code" class="code-input" inputmode="numeric"
+                   autocomplete="one-time-code" maxlength="6" pattern="\d{6}"
+                   placeholder="000000" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Verify email</button>
+    </form>
+
+    <form method="POST" action="/verify/resend" class="form-footer">
+        Didn't get it? <button type="submit" class="link-btn">Send a new code</button>
+    </form>
+
+    <p class="form-footer"><a href="/login">&larr; Back to login</a></p>
+</div>
+
+<%- include('partials/auth-bottom') %>

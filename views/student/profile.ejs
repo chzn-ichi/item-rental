@@ -1,0 +1,63 @@
+<%- include('../partials/student-top', { title: 'Profile', activePage: 'profile' }) %>
+
+<div class="page-head">
+    <div>
+        <h1 class="page-title">My profile</h1>
+        <p class="page-sub">Update your name and password, or delete your account.</p>
+    </div>
+</div>
+
+<%- include('../partials/messages', { success: success, error: error }) %>
+
+<div class="narrow">
+    <div class="table-container">
+        <h3>Account details</h3>
+        <form method="POST" action="/profile/name" class="card-body">
+            <div class="form-group">
+                <label>Full name</label>
+                <input type="text" name="name" value="<%= profile.name %>" required maxlength="60" class="field">
+            </div>
+            <div class="form-group">
+                <label>Email address</label>
+                <input type="email" value="<%= profile.email %>" disabled class="field">
+                <p class="form-hint">Your email is your login, so it can't be changed here.</p>
+            </div>
+            <button type="submit" class="btn btn-primary">Save name</button>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <h3>Change password</h3>
+        <form method="POST" action="/profile/password" class="card-body">
+            <div class="form-group">
+                <label>Current password</label>
+                <input type="password" name="current_password" required autocomplete="current-password" class="field">
+            </div>
+            <div class="form-group">
+                <label>New password</label>
+                <input type="password" name="new_password" required minlength="6" autocomplete="new-password" placeholder="Minimum 6 characters" class="field">
+            </div>
+            <div class="form-group">
+                <label>Confirm new password</label>
+                <input type="password" name="confirm_password" required minlength="6" autocomplete="new-password" class="field">
+            </div>
+            <button type="submit" class="btn btn-primary">Update password</button>
+        </form>
+    </div>
+
+    <div class="table-container danger-zone">
+        <h3>Delete account</h3>
+        <form method="POST" action="/profile/delete" class="card-body"
+              data-confirm="Your account will be permanently deleted. Your past rentals stay in the records, but they will no longer show your name."
+              data-confirm-title="Delete your account" data-confirm-label="Delete account" data-confirm-type="danger">
+            <p class="form-hint" style="margin-top: 0;">You can only delete your account when you have no rentals in progress and no unpaid penalties. Enter your password to confirm.</p>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required autocomplete="current-password" class="field">
+            </div>
+            <button type="submit" class="btn btn-danger-outline">Delete my account</button>
+        </form>
+    </div>
+</div>
+
+<%- include('../partials/student-bottom') %>

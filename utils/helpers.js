@@ -63,7 +63,15 @@ function daysOverdue(dueDate) {
   return Math.max(1, Math.ceil((Date.now() - new Date(dueDate)) / 86400000));
 }
 
+
+// YYYY-MM-DD in Philippine time (UTC+8), for <input type="date"> and range checks
+function dateInputValue(date, plusDays = 0) {
+  const d = new Date(new Date(date).getTime() + plusDays * 86400000 + 8 * 3600000);
+  return d.toISOString().slice(0, 10);
+}
+
+
 module.exports = {
   esc, itemStatusBadge, rentalStatusBadge, categoryBadge,
-  penaltyBadge, formatDate, formatMoney, daysOverdue,
+  penaltyBadge, formatDate, formatMoney, daysOverdue, dateInputValue
 };

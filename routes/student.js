@@ -5,8 +5,11 @@ const Rental = require('../models/Rental');
 const { isStudent } = require('../middleware/auth');
 const { sendBorrowRequestEmail } = require('../utils/mailer');
 
+const bcrypt = require('bcrypt');
+const User = require('../models/User');
+
 const router = express.Router();
-router.use(['/dashboard', '/borrow', '/my-rentals', '/overdue', '/penalties'], isStudent);
+router.use(['/dashboard', '/borrow', '/my-rentals', '/overdue', '/penalties', '/profile'], isStudent);
 
 const MAX_ACTIVE = 3;
 const IN_PROGRESS = ['pending', 'approved', 'pending_return'];
@@ -237,6 +240,101 @@ router.get('/penalties', async (req, res) => {
     res.status(500).send('Something went wrong.');
   }
 });
+
+
+// ---------- Profile ----------
+async function renderProfile(req, res, message = {}) {
+  const profile = await User.findById(req.session.userId).select('name email');
+  if (!profile) return res.redirect('/logout');
+  res.render('student/profile', {
+    profile,
+    success: message.success || '',
+    error: message.error || '',
+  });
+}
+
+router.get('/profile', async (req, res) => {
+  try {
+    await renderProfile(req, res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Something went wrong.');
+  }
+});
+
+router.post('/profile/name', async (req, res) => {
+  try {
+    const name = (req.body.name || '').trim();
+    if (name.length < 2 || name.length > 60) {
+      return renderProfile(req, res, { error: 'Enter a name between 2 and 60 characters.' });
+    }
+
+    await User.updateOne({ _id: req.session.userId }, { name });
+    req.session.userName = name;
+    res.locals.currentUser.name = name; // so the nav shows the new name on this same page
+    await renderProfile(req, res, { success: 'Name updated.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Something went wrong.');
+  }
+});
+
+router.post('/profile/password', async (req, res) => {
+  try {
+    const current = req.body.current_password || '';
+    const next = req.body.new_password || '';
+    const confirm = req.body.confirm_password || '';
+
+    const user = await User.findById(req.session.userId);
+    if (!user || !(await bcrypt.compare(current, user.passwordHash))) {
+      return renderProfile(req, res, { error: 'Your current password is not correct.' });
+    }
+    if (next.length < 6) return renderProfile(req, res, { error: 'The new password must be at least 6 characters.' });
+    if (next !== confirm) return renderProfile(req, res, { error: 'The new passwords do not match.' });
+    if (await bcrypt.compare(next, user.passwordHash)) {
+      return renderProfile(req, res, { error: 'The new password must be different from the current one.' });
+    }
+
+    await User.updateOne({ _id: user._id }, { passwordHash: await bcrypt.hash(next, 10) });
+    await renderProfile(req, res, { success: 'Password updated.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Something went wrong.');
+  }
+});
+
+router.post('/profile/delete', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const user = await User.findById(userId);
+    if (!user || user.role !== 'student') return res.redirect('/logout');
+
+    if (!(await bcrypt.compare(req.body.password || '', user.passwordHash))) {
+      return renderProfile(req, res, { error: 'That password is not correct.' });
+    }
+
+    const [inProgress, penalty] = await Promise.all([
+      Rental.countDocuments({ user: userId, status: { $in: IN_PROGRESS } }),
+      getOutstandingPenalty(userId),
+    ]);
+    if (inProgress > 0) {
+      return renderProfile(req, res, { error: 'Return or cancel your rentals before deleting your account.' });
+    }
+    if (penalty.count > 0) {
+      return renderProfile(req, res, { error: 'Settle your unpaid penalty before deleting your account.' });
+    }
+
+    await User.deleteOne({ _id: userId });
+    req.session.destroy(() => {
+      res.clearCookie('connect.sid');
+      res.render('auth', { activeForm: 'login', error: '', success: 'Your account was deleted.' });
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Something went wrong.');
+  }
+});
+
 
 module.exports = router;
 

@@ -3,7 +3,7 @@
 <div class="page-head">
     <div>
         <h1 class="page-title">Manage rentals</h1>
-        <p class="page-sub">Approve or reject requests and keep an eye on active rentals.</p>
+        <p class="page-sub">Set a due date when you approve, and change it later if needed.</p>
     </div>
 </div>
 
@@ -22,10 +22,12 @@
                         <td><strong><%= r.itemCode %></strong></td>
                         <td><%= r.itemName %></td>
                         <td><%- helpers.categoryBadge(r.category) %></td>
-                        <td><%= helpers.formatDate(r.borrowDate) %></td>
+                        <td><%= helpers.formatDate(r.createdAt) %></td>
                         <td>
                             <div class="row-actions">
-                                <form method="POST" action="/admin/rentals/<%= r._id %>/approve">
+                                <form method="POST" action="/admin/rentals/<%= r._id %>/approve" class="inline-form">
+                                    <span class="date-label">Due</span>
+                                    <input type="date" name="due_date" min="<%= minExt %>" max="<%= maxDue %>" required aria-label="New due date">
                                     <button type="submit" class="btn btn-sm btn-primary">Approve</button>
                                 </form>
                                 <form method="POST" action="/admin/rentals/<%= r._id %>/reject"
@@ -44,15 +46,21 @@
     <% } %>
 </div>
 
+
 <div class="table-container">
     <h3>Active rentals <span class="count">(<%= active.length %>)</span></h3>
     <% if (active.length > 0) { %>
         <table>
             <thead>
-                <tr><th>Student</th><th>Item code</th><th>Item name</th><th>Category</th><th>Borrow date</th><th>Due date</th><th>Status</th></tr>
+                <tr><th>Student</th><th>Item code</th><th>Item name</th><th>Category</th><th>Borrow date</th><th>Due date</th><th>Status</th><th>Extend deadline</th></tr>
             </thead>
             <tbody>
                 <% active.forEach(r => { %>
+                    <%
+                        const overdue = r.dueDate < now;
+                        const afterDue = helpers.dateInputValue(r.dueDate, 1);
+                        const minExt = afterDue > minDue ? afterDue : minDue;
+                    %>
                     <tr>
                         <td><%= r.user ? r.user.name : '—' %></td>
                         <td><%= r.itemCode %></td>
@@ -61,9 +69,22 @@
                         <td><%= helpers.formatDate(r.borrowDate) %></td>
                         <td>
                             <%= helpers.formatDate(r.dueDate) %>
-                            <% if (r.dueDate < now) { %><span class="text-danger">Overdue</span><% } %>
+                            <% if (overdue) { %><span class="text-danger">Overdue</span><% } %>
                         </td>
                         <td><%- helpers.rentalStatusBadge(r.status) %></td>
+                        <td>
+                            <% if (minExt > maxDue) { %>
+                                <small>Maximum reached</small>
+                            <% } else { %>
+                                <form method="POST" action="/admin/rentals/<%= r._id %>/extend" class="inline-form"
+                                      data-confirm="Extend the deadline for <%= r.itemName %> (<%= r.itemCode %>)? The student will be notified by email."
+                                      data-confirm-title="Extend deadline" data-confirm-label="Extend"
+                                      data-confirm-fields="due_date:New due date">
+                                    <input type="date" name="due_date" min="<%= minExt %>" max="<%= maxDue %>" required aria-label="New due date">
+                                    <button type="submit" class="btn btn-sm">Extend</button>
+                                </form>
+                            <% } %>
+                        </td>
                     </tr>
                 <% }) %>
             </tbody>

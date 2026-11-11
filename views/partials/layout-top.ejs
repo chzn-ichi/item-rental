@@ -51,10 +51,17 @@
                 <% }) %>
             </nav>
             <div class="user-area">
-                <div class="user-meta">
-                    <span class="user-name"><%= currentUser.name %></span>
-                    <span class="user-role"><%= isAdminUser ? 'Administrator' : 'Student' %></span>
-                </div>
+                <% if (isAdminUser) { %>
+                    <div class="user-meta">
+                        <span class="user-name"><%= currentUser.name %></span>
+                        <span class="user-role">Administrator</span>
+                    </div>
+                <% } else { %>
+                    <a href="/profile" class="user-meta" title="My profile">
+                        <span class="user-name"><%= currentUser.name %></span>
+                        <span class="user-role">Student</span>
+                    </a>
+                <% } %>
                 <a href="/logout" class="btn btn-sm">Logout</a>
             </div>
         </div>
