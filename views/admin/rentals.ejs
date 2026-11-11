@@ -27,7 +27,7 @@
                             <div class="row-actions">
                                 <form method="POST" action="/admin/rentals/<%= r._id %>/approve" class="inline-form">
                                     <span class="date-label">Due</span>
-                                    <input type="date" name="due_date" min="<%= minExt %>" max="<%= maxDue %>" required aria-label="New due date">
+                                    <input type="date" name="due_date" min="<%= minDue %>" max="<%= maxDue %>" required aria-label="Due date">
                                     <button type="submit" class="btn btn-sm btn-primary">Approve</button>
                                 </form>
                                 <form method="POST" action="/admin/rentals/<%= r._id %>/reject"
