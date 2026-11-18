@@ -25,6 +25,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %> - UniRent</title>
+    <script>try { if (localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}</script>
     <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,40 +34,35 @@
     <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-<header class="topbar">
-    <div class="topbar-inner">
-        <a class="brand" href="<%= home %>" aria-label="UniRent home">
-            <img src="/img/logo-mark.svg" alt="">
-            <span class="brand-text">ni<span>Rent</span></span>
-        </a>
+<aside class="rail">
+    <a class="rail-brand" href="<%= home %>" aria-label="UniRent home">
+        <img class="logo-on-dark" src="/img/logo-mark-light.svg" alt="">
+        <img class="logo-on-light" src="/img/logo-mark.svg" alt="">
+        <span class="brand-text">ni<span>Rent</span></span>
+    </a>
 
-        <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="topbar-menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <nav class="rail-links" aria-label="Main">
+        <% links.forEach(([key, href, label, icon]) => { %>
+            <a href="<%= href %>" class="rail-link <%= activePage === key ? 'active' : '' %>" title="<%= label %>" aria-label="<%= label %>">
+                <i class="ti <%= icon %>" aria-hidden="true"></i><span><%= label %></span>
+            </a>
+        <% }) %>
+    </nav>
+
+    <div class="rail-foot">
+        <% if (!isAdminUser) { %>
+            <a href="/profile" class="rail-link <%= activePage === 'profile' ? 'active' : '' %>" title="My profile" aria-label="My profile">
+                <i class="ti ti-user-circle" aria-hidden="true"></i><span><%= currentUser.name %></span>
+            </a>
+        <% } %>
+        <button type="button" class="rail-link" data-theme-toggle title="Switch theme" aria-label="Switch theme">
+            <i class="ti ti-moon icon-moon" aria-hidden="true"></i><i class="ti ti-sun icon-sun" aria-hidden="true"></i><span>Switch theme</span>
         </button>
-
-        <div class="topbar-menu" id="topbar-menu">
-            <nav class="nav-links">
-                <% links.forEach(([key, href, label, icon]) => { %>
-                    <a href="<%= href %>" class="<%= activePage === key ? 'active' : '' %>"><i class="ti <%= icon %>" aria-hidden="true"></i><%= label %></a>
-                <% }) %>
-            </nav>
-            <div class="user-area">
-                <% if (isAdminUser) { %>
-                    <div class="user-meta">
-                        <span class="user-name"><%= currentUser.name %></span>
-                        <span class="user-role">Administrator</span>
-                    </div>
-                <% } else { %>
-                    <a href="/profile" class="user-meta" title="My profile">
-                        <span class="user-name"><%= currentUser.name %></span>
-                        <span class="user-role">Student</span>
-                    </a>
-                <% } %>
-                <a href="/logout" class="btn btn-sm">Logout</a>
-            </div>
-        </div>
+        <a href="/logout" class="rail-link logout" title="Logout" aria-label="Logout">
+            <i class="ti ti-logout" aria-hidden="true"></i><span>Logout</span>
+        </a>
     </div>
-</header>
+</aside>
 
 <main class="page">
     <% if (locals.showTitle) { %>

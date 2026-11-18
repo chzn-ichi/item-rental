@@ -472,9 +472,30 @@ function sendDeadlineExtendedEmail({ to, name, itemName, itemCode, dueDate }) {
 }
 
 
+function sendPasswordResetCodeEmail({ to, name, code }) {
+    // Development helper: print the code in the terminal (set LOG_OTP=true in .env)
+    if (process.env.LOG_OTP === 'true') console.log(`[OTP] reset ${to}: ${code}`);
+
+    const { text, html } = buildEmail({
+        name,
+        heading: 'Reset your password',
+        badge: 'Security',
+        tone: 'info',
+        preheader: `Your password reset code is ${code}. It expires in 10 minutes.`,
+        paragraphs: [
+            `Use this code to reset your ${appName()} password. It expires in 10 minutes.`
+        ],
+        code,
+        note: 'If you did not request this, you can ignore this email and your password will stay the same.'
+    });
+    return trySend({ to, subject: `Your ${appName()} password reset code`, text, html });
+}
+
+
 module.exports = {
     sendMail,
     sendPasswordResetEmail,
+    sendPasswordResetCodeEmail,
     sendWelcomeEmail,
     sendBorrowRequestEmail,
     sendRentalApprovedEmail,

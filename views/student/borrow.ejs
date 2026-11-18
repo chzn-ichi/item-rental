@@ -10,22 +10,25 @@
         <h1 class="page-title">Borrow an item</h1>
         <p class="page-sub">Pick something available and send a request.</p>
     </div>
-    <span class="chip"><i class="ti ti-package" aria-hidden="true"></i><%= inProgress %> of <%= maxRentals %> rentals in use</span>
+    <span class="chip"><%= inProgress %> of <%= maxRentals %> rentals in use</span>
 </div>
 
 <%- include('../partials/messages', { success: success, error: error }) %>
 
 <% if (blocked) { %>
     <div class="alert alert-error" role="alert">
-        <i class="ti ti-coin" aria-hidden="true"></i>
-        <span>You have an unpaid penalty of <%= helpers.formatMoney(penalty.total) %>. Settle it with the dorm officer to borrow again.</span>
+        You have an unpaid penalty of <%= helpers.formatMoney(penalty.total) %>. Settle it with the dorm officer to borrow again.
     </div>
 <% } else if (atLimit) { %>
     <div class="alert alert-warning" role="alert">
-        <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-        <span>You already have <%= inProgress %> rental(s) in progress. The maximum is <%= maxRentals %>.</span>
+        You already have <%= inProgress %> rental(s) in progress. The maximum is <%= maxRentals %>.
     </div>
 <% } %>
+
+<div class="search-box">
+    <i class="ti ti-search" aria-hidden="true"></i>
+    <input type="text" data-search placeholder="Search by name or code" aria-label="Search items" autocomplete="off">
+</div>
 
 <div class="category-filter">
     <a href="/borrow" class="filter-btn <%= category === 'all' ? 'active' : '' %>">All categories</a>
@@ -34,40 +37,42 @@
     <% }) %>
 </div>
 
-<div class="table-container">
-    <h3>Available items (<%= items.length %>)</h3>
-    <% if (items.length > 0) { %>
-        <table class="data-table">
-            <thead>
-                <tr><th>Item code</th><th>Item name</th><th>Category</th><th>Action</th></tr>
-            </thead>
-            <tbody>
-                <% items.forEach(item => { %>
-                    <tr>
-                        <td><strong><%= item.itemCode %></strong></td>
-                        <td><%= item.itemName %></td>
-                        <td><%- helpers.categoryBadge(item.category) %></td>
-                        <td>
-                            <% if (blocked) { %>
-                                <button class="btn-disabled btn-sm" disabled>Unpaid penalty</button>
-                            <% } else if (atLimit) { %>
-                                <button class="btn-disabled btn-sm" disabled>Limit reached</button>
-                            <% } else { %>
-                                <form method="POST" action="/borrow?category=<%= encodeURIComponent(category) %>"
-                                      data-confirm="Request to borrow <%= item.itemName %> (<%= item.itemCode %>)? It counts toward your limit of <%= maxRentals %> rentals until it's returned, and the admin must approve it first."
-                                      data-confirm-title="Borrow this item" data-confirm-label="Request to borrow">
-                                    <input type="hidden" name="item_id" value="<%= item._id %>">
-                                    <button type="submit" class="btn-primary btn-sm">Borrow</button>
-                                </form>
-                            <% } %>
-                        </td>
-                    </tr>
-                <% }) %>
-            </tbody>
-        </table>
-    <% } else { %>
-        <div class="empty-state"><i class="ti ti-package-off" aria-hidden="true"></i><p>No available items in this category.</p></div>
-    <% } %>
-</div>
+<h2 class="section-label">Available items (<span id="result-count"><%= items.length %></span>)</h2>
+
+<% if (items.length > 0) { %>
+    <div class="item-grid">
+        <% items.forEach(item => { %>
+            <article class="item-card" data-search-item="<%= (item.itemName + ' ' + item.itemCode + ' ' + item.category).toLowerCase() %>">
+                <div class="item-thumb"><%= item.itemCode %></div>
+                <div>
+                    <div class="item-name"><%= item.itemName %></div>
+                </div>
+                <div class="item-meta">
+                    <%- helpers.categoryBadge(item.category) %>
+                    <%- helpers.itemStatusBadge(item.status) %>
+                </div>
+                <% if (blocked) { %>
+                    <button class="btn btn-disabled btn-sm" disabled>Unpaid penalty</button>
+                <% } else if (atLimit) { %>
+                    <button class="btn btn-disabled btn-sm" disabled>Limit reached</button>
+                <% } else { %>
+                    <form method="POST" action="/borrow?category=<%= encodeURIComponent(category) %>"
+                          data-confirm="Request to borrow <%= item.itemName %> (<%= item.itemCode %>)? It counts toward your limit of <%= maxRentals %> rentals until it's returned, and the admin must approve it first."
+                          data-confirm-title="Borrow this item" data-confirm-label="Request to borrow">
+                        <input type="hidden" name="item_id" value="<%= item._id %>">
+                        <button type="submit" class="btn btn-primary btn-sm">Borrow</button>
+                    </form>
+                <% } %>
+            </article>
+        <% }) %>
+    </div>
+    <div class="table-container" id="search-empty" hidden>
+        <div class="empty-state"><p>No items match your search.</p></div>
+    </div>
+<% } else { %>
+    <div class="table-container">
+        <div class="empty-state"><p>No available items in this category.</p></div>
+    </div>
+<% } %>
 
 <%- include('../partials/student-bottom') %>

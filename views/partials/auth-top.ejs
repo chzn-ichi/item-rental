@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %> - UniRent</title>
+    <script>try { if (localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}</script>
     <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,11 +12,16 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
     <link rel="stylesheet" href="/css/app.css">
 </head>
+
 <body class="auth-page">
+<button type="button" class="theme-fab" data-theme-toggle title="Switch theme" aria-label="Switch theme">
+    <i class="ti ti-moon icon-moon" aria-hidden="true"></i><i class="ti ti-sun icon-sun" aria-hidden="true"></i>
+</button>
 <div class="auth-shell">
     <aside class="auth-aside">
         <a class="brand" href="/login" aria-label="UniRent">
-            <img src="/img/logo-mark.svg" alt="">
+            <img class="logo-on-dark" src="/img/logo-mark-light.svg" alt="">
+            <img class="logo-on-light" src="/img/logo-mark.svg" alt="">
             <span class="brand-text">ni<span>Rent</span></span>
         </a>
         <h1 class="auth-headline">Borrow what you need.</h1>

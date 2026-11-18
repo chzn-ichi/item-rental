@@ -3,14 +3,13 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const {
-  sendPasswordResetEmail,
+  sendPasswordResetCodeEmail,
   sendWelcomeEmail,
   sendVerificationCodeEmail,
 } = require('../utils/mailer');
 
 const router = express.Router();
 
-const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 const CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
 const MAX_CODE_ATTEMPTS = 5;
@@ -24,18 +23,7 @@ function hashCode(userId, code) {
   return hashToken(`${userId}:${code}`);
 }
 
-function getBaseUrl(req) {
-  const fromEnv = (process.env.APP_URL || '').trim().replace(/\/+$/, '');
-  return fromEnv || `${req.protocol}://${req.get('host')}`;
-}
 
-// Find a user whose reset token matches and has not expired
-function findUserByResetToken(token) {
-  return User.findOne({
-    resetPasswordToken: hashToken(String(token || '')),
-    resetPasswordExpires: { $gt: new Date() },
-  });
-}
 
 // Send already-logged-in users to their own dashboard
 function redirectIfLoggedIn(req, res, next) {
@@ -244,14 +232,41 @@ router.post('/verify/resend', redirectIfLoggedIn, async (req, res) => {
   }
 });
 
-// ---------- Forgot / reset password ----------
+// ---------- Forgot / reset password (6-digit code) ----------
+
+// The reset code is hashed with a different prefix than the sign-up code
+function hashResetCode(userId, code) {
+  return hashCode(`reset-${userId}`, code);
+}
+
+async function issueResetCode(user) {
+  const code = String(crypto.randomInt(100000, 1000000));
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        resetCodeHash: hashResetCode(user._id, code),
+        resetCodeExpires: new Date(Date.now() + CODE_TTL_MS),
+        resetAttempts: 0,
+        resetLastSentAt: new Date(),
+      },
+    }
+  );
+  sendPasswordResetCodeEmail({ to: user.email, name: user.name, code });
+}
+
+function startReset(req, res, email) {
+  req.session.resetEmail = email;
+  req.session.resetNotice = 'If that email is registered, we sent a 6-digit code. It expires in 10 minutes.';
+  req.session.save(() => res.redirect('/reset-password'));
+}
 
 // Show the "enter your email" page
 router.get('/forgot-password', redirectIfLoggedIn, (req, res) => {
   res.render('forgot-password', { error: '', success: '' });
 });
 
-// Create a reset token and email the link
+// Email a reset code, then open the code page
 router.post('/forgot-password', redirectIfLoggedIn, async (req, res) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
@@ -261,88 +276,72 @@ router.post('/forgot-password', redirectIfLoggedIn, async (req, res) => {
     }
 
     const user = await User.findOne({ email });
+    const recentlySent =
+      user && user.resetLastSentAt && Date.now() - user.resetLastSentAt.getTime() < RESEND_COOLDOWN_MS;
 
-    if (user) {
-      const token = crypto.randomBytes(32).toString('hex');
+    // Same result whether or not the email exists, so this form can't reveal who has an account
+    if (user && !recentlySent) await issueResetCode(user);
 
-      await User.updateOne(
-        { _id: user._id },
-        {
-          $set: {
-            resetPasswordToken: hashToken(token),
-            resetPasswordExpires: new Date(Date.now() + RESET_TOKEN_TTL_MS),
-          },
-        }
-      );
-
-      const resetUrl = `${getBaseUrl(req)}/reset-password/${token}`;
-
-      // Not awaited on purpose, so the response looks the same whether or not the email exists
-      sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl });
-    }
-
-    // Same message either way, so this form can't be used to find out which emails are registered
-    res.render('forgot-password', {
-      error: '',
-      success:
-        'If that email is registered, a reset link has been sent. It expires in 1 hour. Check your spam folder if you do not see it.',
-    });
+    startReset(req, res, email);
   } catch (err) {
     console.error(err);
     res.render('forgot-password', { error: 'Something went wrong. Please try again.', success: '' });
   }
 });
 
-// Show the "choose a new password" page
-router.get('/reset-password/:token', redirectIfLoggedIn, async (req, res) => {
-  try {
-    const user = await findUserByResetToken(req.params.token);
+// Show the "enter your code and new password" page
+router.get('/reset-password', redirectIfLoggedIn, (req, res) => {
+  const email = req.session.resetEmail;
+  if (!email) return res.redirect('/forgot-password');
 
-    if (!user) {
-      return res.render('forgot-password', {
-        error: 'This reset link is invalid or has expired. Please request a new one.',
-        success: '',
-      });
-    }
-
-    res.render('reset-password', { token: req.params.token, error: '' });
-  } catch (err) {
-    console.error(err);
-    res.render('forgot-password', { error: 'Something went wrong. Please try again.', success: '' });
-  }
+  const notice = req.session.resetNotice || '';
+  delete req.session.resetNotice;
+  res.render('reset-password', { email, error: '', success: notice });
 });
 
-// Save the new password
-router.post('/reset-password/:token', redirectIfLoggedIn, async (req, res) => {
+// Check the code and save the new password
+router.post('/reset-password', redirectIfLoggedIn, async (req, res) => {
   try {
-    const user = await findUserByResetToken(req.params.token);
+    const email = req.session.resetEmail;
+    if (!email) return res.redirect('/forgot-password');
 
-    if (!user) {
-      return res.render('forgot-password', {
-        error: 'This reset link is invalid or has expired. Please request a new one.',
-        success: '',
-      });
-    }
+    const fail = (msg) => res.render('reset-password', { email, error: msg, success: '' });
+    const GENERIC = 'That code is not correct or has expired.';
 
+    const code = (req.body.code || '').replace(/\s/g, '');
     const password = req.body.password || '';
     const confirm = req.body.confirm_password || '';
 
-    const fail = (msg) => res.render('reset-password', { token: req.params.token, error: msg });
-
+    // Check the form first, so a typo in the password doesn't use up a code attempt
+    if (!/^\d{6}$/.test(code)) return fail('Enter the 6-digit code from your email.');
     if (!password || !confirm) return fail('Please fill in all fields');
     if (password !== confirm) return fail('Passwords do not match');
     if (password.length < 6) return fail('Password must be at least 6 characters');
 
+    // Count this attempt first, so guesses can't be made in parallel
+    const user = await User.findOneAndUpdate(
+      { email, resetCodeHash: { $exists: true } },
+      { $inc: { resetAttempts: 1 } },
+      { new: true }
+    );
+    if (!user) return fail(GENERIC);
+
+    if (user.resetAttempts > MAX_CODE_ATTEMPTS) return fail('Too many tries. Send a new code and try again.');
+    if (!user.resetCodeExpires || user.resetCodeExpires < new Date()) return fail(GENERIC);
+    if (hashResetCode(user._id, code) !== user.resetCodeHash) return fail(GENERIC);
+
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Following the emailed link proves they own the address, so this also verifies the account
+    // A correct code also proves they own the email, so this verifies the account too
     await User.updateOne(
       { _id: user._id },
       {
         $set: { passwordHash, pendingVerification: false },
         $unset: {
-          resetPasswordToken: '',
-          resetPasswordExpires: '',
+          resetCodeHash: '',
+          resetCodeExpires: '',
+          resetAttempts: '',
+          resetLastSentAt: '',
           verifyCodeHash: '',
           verifyCodeExpires: '',
           verifyAttempts: '',
@@ -351,6 +350,7 @@ router.post('/reset-password/:token', redirectIfLoggedIn, async (req, res) => {
       }
     );
 
+    delete req.session.resetEmail;
     res.render('auth', {
       activeForm: 'login',
       error: '',
@@ -358,7 +358,37 @@ router.post('/reset-password/:token', redirectIfLoggedIn, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.render('forgot-password', { error: 'Something went wrong. Please try again.', success: '' });
+    res.redirect('/forgot-password');
+  }
+});
+
+router.post('/reset-password/resend', redirectIfLoggedIn, async (req, res) => {
+  try {
+    const email = req.session.resetEmail;
+    if (!email) return res.redirect('/forgot-password');
+
+    const user = await User.findOne({ email });
+    const wait = user && user.resetLastSentAt
+      ? RESEND_COOLDOWN_MS - (Date.now() - user.resetLastSentAt.getTime())
+      : 0;
+
+    if (wait > 0) {
+      return res.render('reset-password', {
+        email,
+        error: `Wait ${Math.ceil(wait / 1000)} seconds before asking for another code.`,
+        success: '',
+      });
+    }
+
+    if (user) await issueResetCode(user);
+    res.render('reset-password', {
+      email,
+      error: '',
+      success: 'If that email is registered, a new code was sent.',
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/forgot-password');
   }
 });
 

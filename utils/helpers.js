@@ -1,9 +1,9 @@
 const CATEGORY_COLORS = {
-  'Apparel': '#8B5CF6',
-  'Electronics': '#3B82F6',
-  'Board and Card Games': '#10B981',
-  'Sports Equipment': '#F59E0B',
-  'Others': '#6B7280',
+  'Apparel':              { dark: '#C4B5FD', light: '#6D28D9' },
+  'Electronics':          { dark: '#93C5FD', light: '#1D4ED8' },
+  'Board and Card Games': { dark: '#6EE7B7', light: '#047857' },
+  'Sports Equipment':     { dark: '#FCD34D', light: '#B45309' },
+  'Others':               { dark: '#CBD5E1', light: '#475569' },
 };
 
 // Escapes text so user data can't inject HTML (replaces htmlspecialchars)
@@ -36,8 +36,8 @@ function rentalStatusBadge(status) {
 }
 
 function categoryBadge(category) {
-  const color = CATEGORY_COLORS[category] || '#6B7280';
-  return `<span class="badge" style="background: ${color}20; color: ${color}; padding: 4px 8px;">${esc(category)}</span>`;
+  const c = CATEGORY_COLORS[category] || CATEGORY_COLORS['Others'];
+  return `<span class="badge cat" style="--c: ${c.dark}; --cl: ${c.light};">${esc(category)}</span>`;
 }
 
 function penaltyBadge(penalty) {

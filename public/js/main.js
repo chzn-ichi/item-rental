@@ -151,3 +151,36 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.addEventListener('click', dismiss);
   });
 });
+
+
+// Live search on the Borrow page
+document.addEventListener('DOMContentLoaded', () => {
+  const box = document.querySelector('[data-search]');
+  if (!box) return;
+
+  const cards = [...document.querySelectorAll('[data-search-item]')];
+  const empty = document.getElementById('search-empty');
+  const countEl = document.getElementById('result-count');
+
+  box.addEventListener('input', () => {
+    const q = box.value.trim().toLowerCase();
+    let shown = 0;
+    cards.forEach((card) => {
+      const hit = !q || card.dataset.searchItem.includes(q);
+      card.hidden = !hit;
+      if (hit) shown += 1;
+    });
+    if (empty) empty.hidden = shown !== 0;
+    if (countEl) countEl.textContent = shown;
+  });
+});
+
+// Light / dark theme toggle (the choice is remembered in this browser)
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-theme-toggle]')) return;
+  const root = document.documentElement;
+  const wasLight = root.getAttribute('data-theme') === 'light';
+  if (wasLight) root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', 'light');
+  try { localStorage.setItem('theme', wasLight ? 'dark' : 'light'); } catch (err) { /* private mode */ }
+});

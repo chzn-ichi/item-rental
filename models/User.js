@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema(
     verifyCodeExpires: { type: Date },
     verifyAttempts: { type: Number, default: 0 },
     verifyLastSentAt: { type: Date },
+    resetCodeHash: { type: String },
+    resetCodeExpires: { type: Date },
+    resetAttempts: { type: Number, default: 0 },
+    resetLastSentAt: { type: Date },
   },
   { timestamps: true } // adds createdAt and updatedAt automatically
 );
