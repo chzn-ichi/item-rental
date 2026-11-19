@@ -73,7 +73,10 @@ router.post('/login', redirectIfLoggedIn, async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    const valid = user && (await bcrypt.compare(password, user.passwordHash));
+    const valid =
+      user &&
+      (await bcrypt.compare(password, user.passwordHash)) &&
+      user.role === 'student';
 
     if (!valid) {
       return res.render('auth', { activeForm: 'login', error: 'Invalid email or password', success: '' });
@@ -142,6 +145,42 @@ router.post('/register', redirectIfLoggedIn, async (req, res) => {
     res.render('auth', { activeForm: 'register', error: 'Registration failed. Please try again.', success: '' });
   }
 });
+
+
+// ---------- Admin login ----------
+
+router.get('/admin/login', redirectIfLoggedIn, (req, res) => {
+  res.render('admin-login', { error: '' });
+});
+
+router.post('/admin/login', redirectIfLoggedIn, async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const password = req.body.password || '';
+    const fail = (msg) => res.render('admin-login', { error: msg });
+
+    if (!email || !password) return fail('Please fill in all fields');
+
+    const user = await User.findOne({ email });
+    const valid =
+      user &&
+      (await bcrypt.compare(password, user.passwordHash)) &&
+      user.role === 'admin';
+
+    // Same message for a wrong password, an unknown email, or a student account
+    if (!valid) return fail('Invalid email or password');
+
+    req.session.userId = user._id.toString();
+    req.session.userName = user.name;
+    req.session.email = user.email;
+    req.session.role = user.role;
+    req.session.save(() => res.redirect('/admin/dashboard'));
+  } catch (err) {
+    console.error(err);
+    res.render('admin-login', { error: 'Something went wrong. Please try again.' });
+  }
+});
+
 
 // ---------- Email verification ----------
 
@@ -394,9 +433,10 @@ router.post('/reset-password/resend', redirectIfLoggedIn, async (req, res) => {
 
 // Logout
 router.get('/logout', (req, res) => {
+  const wasAdmin = req.session.role === 'admin';
   req.session.destroy(() => {
     res.clearCookie('connect.sid');
-    res.redirect('/login');
+    res.redirect(wasAdmin ? '/admin/login' : '/login');
   });
 });
 

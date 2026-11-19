@@ -8,10 +8,21 @@ const { sendBorrowRequestEmail } = require('../utils/mailer');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
+const { getSettings, DEFAULTS } = require('../utils/settings');
+const { alertAdmins } = require('../utils/adminAlerts');
+
 const router = express.Router();
 router.use(['/dashboard', '/borrow', '/my-rentals', '/overdue', '/penalties', '/profile'], isStudent);
 
-const MAX_ACTIVE = 3;
+router.use(['/dashboard', '/borrow', '/my-rentals', '/overdue', '/penalties', '/profile'], async (req, res, next) => {
+  try {
+    res.locals.rules = await getSettings();
+  } catch (err) {
+    res.locals.rules = DEFAULTS;
+  }
+  next();
+});
+
 const IN_PROGRESS = ['pending', 'approved', 'pending_return'];
 
 // Total and count of this student's unpaid (not waived) penalties
@@ -55,10 +66,10 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
-// ---------- Borrow ----------
 async function renderBorrow(req, res, message = {}) {
   const userId = req.session.userId;
   const category = req.query.category || 'all';
+  const rules = await getSettings();
 
   const filter = { status: 'available' };
   if (category !== 'all' && Item.CATEGORIES.includes(category)) filter.category = category;
@@ -71,8 +82,9 @@ async function renderBorrow(req, res, message = {}) {
   ]);
 
   res.render('student/borrow', {
-    items, categories: categories.sort(), category, inProgress, penalty,
-    maxRentals: MAX_ACTIVE,
+    items, categories: categories.sort(), category, inProgress,
+    penalty: rules.blockOnPenalty ? penalty : { total: 0, count: 0 },
+    maxRentals: rules.maxRentals,
     success: message.success || '',
     error: message.error || '',
   });
@@ -91,29 +103,31 @@ router.post('/borrow', async (req, res) => {
   try {
     const userId = req.session.userId;
     const itemId = req.body.item_id;
+    const rules = await getSettings();
 
     if (!mongoose.isValidObjectId(itemId)) {
       return renderBorrow(req, res, { error: 'Invalid item.' });
     }
 
-    // Rule 1: unpaid penalty blocks borrowing
-    const penalty = await getOutstandingPenalty(userId);
-    if (penalty.count > 0) {
-      return renderBorrow(req, res, {
-        error: 'You have an unpaid penalty. Please settle it with the dorm officer first.',
-      });
+    // Rule 1: an unpaid penalty blocks borrowing (if the admin left this rule on)
+    if (rules.blockOnPenalty) {
+      const penalty = await getOutstandingPenalty(userId);
+      if (penalty.count > 0) {
+        return renderBorrow(req, res, {
+          error: 'You have an unpaid penalty. Please settle it with the dorm officer first.',
+        });
+      }
     }
 
-    // Rule 2: max 3 rentals in progress (pending + approved + pending return)
+    // Rule 2: a limit on rentals in progress (pending + approved + pending return)
     const inProgress = await Rental.countDocuments({ user: userId, status: { $in: IN_PROGRESS } });
-    if (inProgress >= MAX_ACTIVE) {
+    if (inProgress >= rules.maxRentals) {
       return renderBorrow(req, res, {
-        error: `You already have ${inProgress} rental(s) in progress. Maximum is ${MAX_ACTIVE}.`,
+        error: `You already have ${inProgress} rental(s) in progress. Maximum is ${rules.maxRentals}.`,
       });
     }
 
-    // Atomic claim: only succeeds if the item is STILL available,
-    // so two students can't grab the same item at the same time
+    // Atomic claim: only succeeds if the item is STILL available
     const item = await Item.findOneAndUpdate(
       { _id: itemId, status: 'available' },
       { status: 'rented' },
@@ -132,17 +146,15 @@ router.post('/borrow', async (req, res) => {
         category: item.category,
       });
     } catch (err) {
-      // Undo the claim if the rental couldn't be saved
       await Item.updateOne({ _id: item._id }, { status: 'available' });
       throw err;
     }
 
-    // Confirmation email (never blocks or breaks the request)
-    sendBorrowRequestEmail({
-      to: req.session.email,
-      name: req.session.userName,
-      itemName: item.itemName,
-      itemCode: item.itemCode,
+    alertAdmins({
+      heading: 'New borrow request',
+      message: `${req.session.userName} asked to borrow an item.`,
+      details: [['Student', req.session.userName], ['Item', `${item.itemName} (${item.itemCode})`]],
+      path: '/admin/rentals',
     });
 
     await renderBorrow(req, res, {
@@ -199,6 +211,15 @@ router.post('/my-rentals/return', async (req, res) => {
         { _id: rentalId, user: req.session.userId, status: 'approved' },
         { status: 'pending_return' }
       );
+    }
+
+    if (updated) {
+      alertAdmins({
+        heading: 'Return requested',
+        message: `${req.session.userName} is ready to return an item.`,
+        details: [['Student', req.session.userName], ['Item', `${updated.itemName} (${updated.itemCode})`]],
+        path: '/admin/returns',
+      });
     }
 
     await renderMyRentals(req, res, updated

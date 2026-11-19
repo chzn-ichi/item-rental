@@ -5,6 +5,7 @@ const Rental = require('../models/Rental');
 const User = require('../models/User');
 const { isAdmin } = require('../middleware/auth');
 const { dateInputValue } = require('../utils/helpers');
+const { getSettings } = require('../utils/settings');
 const {
   sendRentalApprovedEmail,
   sendRentalRejectedEmail,
@@ -39,8 +40,10 @@ const safe = (fn) => (req, res, next) =>
 // email can't break the admin action that triggered it. Call it without await.
 async function emailStudent(userId, sendFn, data) {
   try {
-    const student = await User.findById(userId).select('name email');
-    if (student) await sendFn({ to: student.email, name: student.name, ...data });
+    const student = await User.findById(userId).select('name email notifyEmail');
+    if (student && student.notifyEmail !== false) {
+      await sendFn({ to: student.email, name: student.name, ...data });
+    }
   } catch (err) {
     console.error('Could not send student email:', err.message);
   }
@@ -54,7 +57,6 @@ const penaltiesUrl = (s) =>
   PENALTY_FILTERS.includes(s) ? `/admin/penalties?status=${s}` : '/admin/penalties';
 
 // ---------- Due dates ----------
-const MAX_LOAN_DAYS = 30;
 
 // The chosen day counts until 23:59:59 Philippine time
 function parseDueDate(str) {
@@ -64,12 +66,14 @@ function parseDueDate(str) {
 }
 
 // Earliest, latest, and default due dates the admin can pick (YYYY-MM-DD)
-function dueLimits() {
+async function dueLimits() {
+  const s = await getSettings();
   const now = new Date();
   return {
     minDue: dateInputValue(now, 1),
-    maxDue: dateInputValue(now, MAX_LOAN_DAYS),
-    defaultDue: dateInputValue(now, Rental.RENTAL_DAYS),
+    maxDue: dateInputValue(now, s.maxLoanDays),
+    defaultDue: dateInputValue(now, Math.min(s.defaultLoanDays, s.maxLoanDays)),
+    maxLoanDays: s.maxLoanDays,
   };
 }
 
@@ -131,6 +135,49 @@ const ITEM_SORTS = {
   status:    { label: 'Status', sort: { status: 1, itemCode: 1 } },
 };
 const hasSort = (key) => typeof key === 'string' && Object.hasOwn(ITEM_SORTS, key);
+
+
+// ---------- Dashboard charts (JSON) ----------
+const WEEKS_SHOWN = 8;
+
+router.get('/api/stats', safe(async (req, res) => {
+  const DAY = 86400000;
+
+  // Start of this week (Monday 00:00, Philippine time)
+  const manila = new Date(Date.now() + 8 * 3600000);
+  const sinceMonday = (manila.getUTCDay() + 6) % 7;
+  const thisWeekStart =
+    Date.UTC(manila.getUTCFullYear(), manila.getUTCMonth(), manila.getUTCDate() - sinceMonday) - 8 * 3600000;
+
+  const ranges = [];
+  for (let i = WEEKS_SHOWN - 1; i >= 0; i--) {
+    const start = new Date(thisWeekStart - i * 7 * DAY);
+    ranges.push({ start, end: new Date(start.getTime() + 7 * DAY) });
+  }
+
+  const [weekCounts, statusRows, topRows] = await Promise.all([
+    Promise.all(ranges.map((r) => Rental.countDocuments({ createdAt: { $gte: r.start, $lt: r.end } }))),
+    Item.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+    Rental.aggregate([
+      { $match: { status: { $in: ['approved', 'pending_return', 'returned'] } } },
+      { $group: { _id: '$itemName', count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+      { $limit: 5 },
+    ]),
+  ]);
+
+  const statuses = { available: 0, rented: 0, maintenance: 0, damaged: 0 };
+  statusRows.forEach((r) => { if (r._id in statuses) statuses[r._id] = r.count; });
+
+  res.json({
+    weeks: ranges.map((r, i) => ({
+      label: r.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }),
+      count: weekCounts[i],
+    })),
+    statuses,
+    top: topRows.map((r) => ({ name: r._id, count: r.count })),
+  });
+}));
 
 
 // ---------- Manage Items ----------
@@ -252,7 +299,7 @@ router.get('/rentals', safe(async (req, res) => {
     Rental.find({ status: 'pending' }).sort({ createdAt: 1 }).populate('user', 'name email'),
     Rental.find({ status: 'approved' }).sort({ dueDate: 1 }).populate('user', 'name email'),
   ]);
-  res.render('admin/rentals', { pending, active, now: new Date(), ...dueLimits() });
+  res.render('admin/rentals', { pending, active, now: new Date(), ...(await dueLimits()) });
 }));
 
 router.post('/rentals/:id/approve', safe(async (req, res) => {
@@ -260,11 +307,11 @@ router.post('/rentals/:id/approve', safe(async (req, res) => {
   if (!validId(req.params.id)) return go(req, res, back, 'error', 'Invalid rental.');
 
   // The admin picks the deadline: between tomorrow and MAX_LOAN_DAYS from today
-  const { minDue, maxDue } = dueLimits();
+  const { minDue, maxDue, maxLoanDays } = await dueLimits();
   const dueStr = req.body.due_date;
   const due = parseDueDate(dueStr);
   if (!due || dueStr < minDue || dueStr > maxDue) {
-    return go(req, res, back, 'error', `Choose a due date between tomorrow and ${MAX_LOAN_DAYS} days from now.`);
+    return go(req, res, back, 'error', `Choose a due date between tomorrow and ${maxLoanDays} days from now.`);
   }
 
   const rental = await Rental.findOneAndUpdate(
@@ -290,12 +337,12 @@ router.post('/rentals/:id/extend', safe(async (req, res) => {
   const rental = await Rental.findOne({ _id: req.params.id, status: 'approved' });
   if (!rental) return go(req, res, back, 'error', 'Only active rentals can be extended.');
 
-  const { minDue, maxDue } = dueLimits();
+  const { minDue, maxDue, maxLoanDays } = await dueLimits();
   const dueStr = req.body.due_date;
   const due = parseDueDate(dueStr);
   console.log('EXTEND', { dueStr, current: rental.dueDate.toISOString(), chosen: due && due.toISOString() });
   if (!due || dueStr < minDue || dueStr > maxDue) {
-    return go(req, res, back, 'error', `Choose a date between tomorrow and ${MAX_LOAN_DAYS} days from now.`);
+    return go(req, res, back, 'error', `Choose a date between tomorrow and ${maxLoanDays} days from now.`);
   }
   if (due <= rental.dueDate) {
     return go(req, res, back, 'error', 'A deadline can only be extended. Choose a date after the current due date.');

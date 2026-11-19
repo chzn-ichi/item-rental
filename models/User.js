@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema(
     resetCodeExpires: { type: Date },
     resetAttempts: { type: Number, default: 0 },
     resetLastSentAt: { type: Date },
+    notifyEmail: { type: Boolean, default: true },
+    adminAlerts: { type: Boolean, default: false },
   },
   { timestamps: true } // adds createdAt and updatedAt automatically
 );

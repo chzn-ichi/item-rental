@@ -34,6 +34,49 @@
     <a href="/admin/penalties?status=unpaid" class="stat-card red"><div class="stat-label">Unpaid penalties</div><div class="stat-value"><%= helpers.formatMoney(unpaid.total) %></div></a>
 </div>
 
+<h2 class="section-label">Trends</h2>
+<div id="charts-error" class="alert alert-error" hidden>Couldn't load the charts. Refresh the page to try again.</div>
+
+<div class="chart-grid">
+    <div class="table-container">
+        <h3>Rental requests per week</h3>
+        <div class="card-body">
+            <div class="skeleton chart-skel" data-skel></div>
+            <div class="chart-box" data-chart-content hidden>
+                <canvas id="chart-weekly" role="img" aria-label="Bar chart of rental requests per week"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h3>Items by status</h3>
+        <div class="card-body">
+            <div class="skeleton chart-skel" data-skel></div>
+            <div class="chart-box" data-chart-content hidden>
+                <canvas id="chart-status" role="img" aria-label="Doughnut chart of items by status"></canvas>
+                <p id="status-empty" class="empty-state" hidden>No items yet.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-container">
+    <h3>Most borrowed</h3>
+    <div class="card-body">
+        <div data-skel>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+        </div>
+        <ul class="rank-list" id="top-list" data-chart-content hidden></ul>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/js/admin-charts.js" defer></script>
+
 <div class="table-container">
     <h3>Items by category</h3>
     <div class="chip-row">

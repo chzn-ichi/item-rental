@@ -492,6 +492,21 @@ function sendPasswordResetCodeEmail({ to, name, code }) {
 }
 
 
+function sendAdminAlertEmail({ to, name, heading, message, details = [], path = '/admin/dashboard' }) {
+    const { text, html } = buildEmail({
+        name,
+        heading,
+        badge: 'Needs attention',
+        tone: 'warning',
+        preheader: message,
+        paragraphs: [message],
+        details,
+        button: linkButton('Open admin panel', path)
+    });
+    return trySend({ to, subject: heading, text, html });
+}
+
+
 module.exports = {
     sendMail,
     sendPasswordResetEmail,
@@ -505,5 +520,6 @@ module.exports = {
     sendDueSoonEmail,
     sendOverdueEmail,
     sendVerificationCodeEmail,
-    sendDeadlineExtendedEmail
+    sendDeadlineExtendedEmail,
+    sendAdminAlertEmail
 };

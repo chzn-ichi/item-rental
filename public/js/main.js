@@ -184,3 +184,42 @@ document.addEventListener('click', (e) => {
   else root.setAttribute('data-theme', 'light');
   try { localStorage.setItem('theme', wasLight ? 'dark' : 'light'); } catch (err) { /* private mode */ }
 });
+
+
+// Thin loading bar while the next page loads
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href]');
+  if (!a || a.target === '_blank' || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+  const url = new URL(a.href, location.href);
+  if (url.origin !== location.origin) return;
+  if (url.pathname === location.pathname && url.search === location.search) return;
+  document.body.classList.add('is-loading');
+});
+document.addEventListener('submit', (e) => {
+  if (!e.defaultPrevented) document.body.classList.add('is-loading');
+});
+window.addEventListener('pageshow', () => document.body.classList.remove('is-loading'));
+
+
+// Theme buttons on the Settings page
+document.addEventListener('DOMContentLoaded', () => {
+  const buttons = document.querySelectorAll('[data-theme-set]');
+  if (!buttons.length) return;
+  const root = document.documentElement;
+
+  const mark = () => {
+    const light = root.getAttribute('data-theme') === 'light';
+    buttons.forEach((b) => b.classList.toggle('on', (b.dataset.themeSet === 'light') === light));
+  };
+
+  buttons.forEach((b) => b.addEventListener('click', () => {
+    const light = b.dataset.themeSet === 'light';
+    if (light) root.setAttribute('data-theme', 'light');
+    else root.removeAttribute('data-theme');
+    try { localStorage.setItem('theme', light ? 'light' : 'dark'); } catch (err) { /* private mode */ }
+    mark();
+  }));
+
+  new MutationObserver(mark).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  mark();
+});

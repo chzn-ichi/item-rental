@@ -13,7 +13,7 @@
             <div class="summary-label">Unpaid balance</div>
             <div class="summary-value"><%= helpers.formatMoney(penalty.total) %></div>
         </div>
-        <p class="summary-note">Pay the dorm officer in person, and they will mark it as paid. Borrowing is paused until then.</p>
+        <p class="summary-note">Pay the dorm officer in person, and they will mark it as paid. <% if (rules.blockOnPenalty) { %>Borrowing is paused until then.<% } %></p>
     </div>
 <% } else { %>
     <div class="summary-card">

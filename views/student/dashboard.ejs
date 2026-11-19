@@ -11,7 +11,7 @@
 <% if (penalty.count > 0) { %>
     <div class="alert alert-error" role="alert">
         <i class="ti ti-coin" aria-hidden="true"></i>
-        <span>You have an unpaid penalty of <strong><%= helpers.formatMoney(penalty.total) %></strong>. You can't borrow new items until it's settled with the dorm officer. <a href="/penalties">View details</a></span>
+        <span>You have an unpaid penalty of <strong><%= helpers.formatMoney(penalty.total) %></strong>. <% if (rules.blockOnPenalty) { %>You can't borrow new items until it's settled with the dorm officer.<% } else { %>Please settle it with the dorm officer.<% } %> <a href="/penalties">View details</a></span>
     </div>
 <% } %>
 

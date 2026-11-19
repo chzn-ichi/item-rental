@@ -1,0 +1,16 @@
+<% if (locals.testAs) { %>
+    <details class="dev-switch">
+        <summary>Test as</summary>
+        <form method="POST" action="/dev/switch">
+            <p class="dev-note">Dev only. Switch accounts without a password.</p>
+            <select name="user_id" aria-label="Switch to account">
+                <% (locals.testUsers || []).forEach(u => { %>
+                    <option value="<%= u._id %>" <%= (currentUser && currentUser.id === String(u._id)) ? 'selected' : '' %>>
+                        <%= u.name %> (<%= u.role %>)
+                    </option>
+                <% }) %>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Switch</button>
+        </form>
+    </details>
+<% } %>

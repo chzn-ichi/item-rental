@@ -1,0 +1,104 @@
+<%- include('partials/layout-top', { title: 'Settings', activePage: 'settings' }) %>
+
+<div class="narrow">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Settings</h1>
+            <p class="page-sub">Choose how UniRent looks and what it sends you.</p>
+        </div>
+    </div>
+
+    <%- include('partials/messages', { success: success, error: error }) %>
+
+    <div class="table-container">
+        <h3>Appearance</h3>
+        <div class="card-body">
+            <p class="form-hint" style="margin-top: 0;">Your choice is saved in this browser.</p>
+            <div class="seg">
+                <button type="button" class="seg-btn" data-theme-set="dark">Dark</button>
+                <button type="button" class="seg-btn" data-theme-set="light">Light</button>
+            </div>
+        </div>
+    </div>
+
+    <% if (isAdminPage) { %>
+        <div class="table-container">
+            <h3>Loan rules</h3>
+            <form method="POST" action="/settings/loan-rules" class="card-body"
+                  data-confirm="These rules apply to new requests and approvals right away. Existing rentals keep their current due dates."
+                  data-confirm-title="Save loan rules" data-confirm-label="Save rules"
+                  data-confirm-fields="default_days:Default loan (days)|max_days:Maximum loan (days)|max_rentals:Rentals per student">
+                <div class="form-row">
+                    <div>
+                        <label>Default loan (days)</label>
+                        <input type="number" name="default_days" value="<%= loanRules.defaultLoanDays %>" min="1" max="90" required class="field">
+                    </div>
+                    <div>
+                        <label>Maximum loan (days)</label>
+                        <input type="number" name="max_days" value="<%= loanRules.maxLoanDays %>" min="1" max="90" required class="field">
+                    </div>
+                    <div>
+                        <label>Rentals per student</label>
+                        <input type="number" name="max_rentals" value="<%= loanRules.maxRentals %>" min="1" max="10" required class="field">
+                    </div>
+                </div>
+                <p class="form-hint">The default loan pre-fills the due date when you approve a request. The maximum is how far ahead you can set or extend a deadline. Rentals per student counts pending, approved, and waiting-for-return rentals.</p>
+
+                <div class="switch-row" style="margin-top: 16px;">
+                    <div>
+                        <strong>Unpaid penalties block borrowing</strong>
+                        <p class="form-hint" style="margin-top: 4px;">When on, a student with an unpaid penalty can't request new items until it's paid or waived.</p>
+                    </div>
+                    <input type="checkbox" name="block_on_penalty" <%= loanRules.blockOnPenalty ? 'checked' : '' %> aria-label="Unpaid penalties block borrowing">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 16px;">Save rules</button>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <h3>Admin alerts</h3>
+            <form method="POST" action="/settings/admin-alerts" class="card-body">
+                <div class="switch-row">
+                    <div>
+                        <strong>Email me about student requests</strong>
+                        <p class="form-hint" style="margin-top: 4px;">You'll get an email at your account address when a student requests an item or asks to return one.</p>
+                    </div>
+                    <input type="checkbox" name="admin_alerts" <%= adminAlerts ? 'checked' : '' %> aria-label="Admin alerts">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 16px;">Save</button>
+            </form>
+        </div>
+    <% } %>
+
+    <% if (isStudent) { %>
+        <div class="table-container">
+            <h3>Email notifications</h3>
+            <form method="POST" action="/settings/notifications" class="card-body">
+                <div class="switch-row">
+                    <div>
+                        <strong>Rental updates and reminders</strong>
+                        <p class="form-hint" style="margin-top: 4px;">Approvals, returns, penalties, deadline changes, and due-date reminders. Security codes and your welcome email are always sent.</p>
+                    </div>
+                    <input type="checkbox" name="notify_email" <%= notifyEmail ? 'checked' : '' %> aria-label="Email notifications">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 16px;">Save</button>
+            </form>
+        </div>
+    <% } %>
+
+    <div class="table-container">
+        <h3>Language</h3>
+        <div class="card-body">
+            <select class="field" disabled aria-label="Language">
+                <option>English</option>
+            </select>
+            <p class="form-hint">More languages are coming soon.</p>
+        </div>
+    </div>
+
+    <% if (isStudent) { %>
+        <p class="form-footer"><a href="/profile">Edit your name, password, or account</a></p>
+    <% } %>
+</div>
+
+<%- include('partials/layout-bottom') %>

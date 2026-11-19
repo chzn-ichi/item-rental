@@ -58,11 +58,16 @@
         <button type="button" class="rail-link" data-theme-toggle title="Switch theme" aria-label="Switch theme">
             <i class="ti ti-moon icon-moon" aria-hidden="true"></i><i class="ti ti-sun icon-sun" aria-hidden="true"></i><span>Switch theme</span>
         </button>
+        <a href="/settings" class="rail-link <%= activePage === 'settings' ? 'active' : '' %>" title="Settings" aria-label="Settings">
+            <i class="ti ti-settings" aria-hidden="true"></i><span>Settings</span>
+        </a>
         <a href="/logout" class="rail-link logout" title="Logout" aria-label="Logout">
             <i class="ti ti-logout" aria-hidden="true"></i><span>Logout</span>
         </a>
     </div>
 </aside>
+
+<%- include('test-as') %>
 
 <main class="page">
     <% if (locals.showTitle) { %>

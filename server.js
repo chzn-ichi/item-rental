@@ -15,6 +15,8 @@ const { startReminderJob } = require('./utils/reminders');
 
 const app = express();
 
+const User = require('./models/User');
+
 // Views (EJS)
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -42,7 +44,27 @@ app.use(
 
 app.use(exposeUser);
 
+// Dev-only account switcher (see .env: ENABLE_TEST_AS)
+if (process.env.ENABLE_TEST_AS === 'true' && process.env.NODE_ENV !== 'production') {
+  console.log('Test-as switcher is ON (dev only).');
+  app.use(async (req, res, next) => {
+    res.locals.testAs = true;
+    try {
+      res.locals.testUsers = await User.find({ pendingVerification: { $ne: true } })
+        .select('name email role')
+        .sort({ role: 1, name: 1 })
+        .limit(20)
+        .lean();
+    } catch (err) {
+      res.locals.testUsers = [];
+    }
+    next();
+  });
+  app.use('/dev', require('./routes/dev'));
+}
+
 app.use('/', require('./routes/auth'));
+app.use('/', require('./routes/settings'));
 app.use('/', require('./routes/student'));
 app.use('/admin', require('./routes/admin'));
 

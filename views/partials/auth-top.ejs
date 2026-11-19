@@ -17,6 +17,7 @@
 <button type="button" class="theme-fab" data-theme-toggle title="Switch theme" aria-label="Switch theme">
     <i class="ti ti-moon icon-moon" aria-hidden="true"></i><i class="ti ti-sun icon-sun" aria-hidden="true"></i>
 </button>
+<%- include('test-as') %>
 <div class="auth-shell">
     <aside class="auth-aside">
         <a class="brand" href="/login" aria-label="UniRent">
@@ -24,14 +25,19 @@
             <img class="logo-on-light" src="/img/logo-mark.svg" alt="">
             <span class="brand-text">ni<span>Rent</span></span>
         </a>
-        <h1 class="auth-headline">Borrow what you need.</h1>
-        <p class="auth-tagline">Dorm item rental for students and staff.</p>
-        <ul class="auth-features">
-            <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Easy item borrowing</li>
-            <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Track your rentals</li>
-            <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Multiple categories</li>
-            <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Penalty management</li>
-        </ul>
+        <% if (locals.adminMode) { %>
+            <h1 class="auth-headline">Admin portal</h1>
+            <p class="auth-tagline">Approve requests, process returns, and keep track of every item.</p>
+        <% } else { %>
+            <h1 class="auth-headline">Borrow what you need.</h1>
+            <p class="auth-tagline">Dorm item rental for students and staff.</p>
+            <ul class="auth-features">
+                <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Easy item borrowing</li>
+                <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Track your rentals</li>
+                <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Multiple categories</li>
+                <li><span class="auth-check"><i class="ti ti-check" aria-hidden="true"></i></span>Penalty management</li>
+            </ul>
+        <% } %>
     </aside>
 
     <section class="auth-main">

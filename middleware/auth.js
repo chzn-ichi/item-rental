@@ -4,9 +4,9 @@ function isLoggedIn(req, res, next) {
   res.redirect('/login');
 }
 
-// Must be an admin; students get sent to their own dashboard
+// Must be an admin; visitors go to the admin login, students to their own dashboard
 function isAdmin(req, res, next) {
-  if (!req.session.userId) return res.redirect('/login');
+  if (!req.session.userId) return res.redirect('/admin/login');
   if (req.session.role === 'admin') return next();
   res.redirect('/dashboard');
 }
